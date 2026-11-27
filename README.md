@@ -1,5 +1,15 @@
 # Lumen Camera
 
+[![Build apps](https://github.com/jeshiomurmu/lumen-camera/actions/workflows/build.yml/badge.svg)](https://github.com/jeshiomurmu/lumen-camera/actions/workflows/build.yml)
+[![Device tests](https://github.com/jeshiomurmu/lumen-camera/actions/workflows/device-tests.yml/badge.svg)](https://github.com/jeshiomurmu/lumen-camera/actions/workflows/device-tests.yml)
+[![Latest release](https://img.shields.io/github/v/release/jeshiomurmu/lumen-camera?label=download)](https://github.com/jeshiomurmu/lumen-camera/releases/latest)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+![Platforms](https://img.shields.io/badge/platforms-Android%2010%2B%20%7C%20iOS%2017%2B-black)
+
+**Open-source pro camera for Android and iOS.** It merges bursts of RAW frames the way Google's HDR+ does, stacks the night sky, gives you full manual control, saves 16-bit DNG, records Log / HDR / ProRes video, and runs AI denoise and AI zoom on the phone. Everything is built on one shared C++ imaging core you can test on a laptop.
+
+⭐ If you like the idea, star the repo; it helps other people find it. Phone owners: a [device report](https://github.com/jeshiomurmu/lumen-camera/issues/new?template=device-report.yml) from your phone is the most useful contribution right now (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+
 A pro camera app for **Android** (Kotlin + Jetpack Compose + Camera2) and **iOS** (Swift + SwiftUI + AVFoundation). Both apps share one open-source C++ imaging core. The core does HDR+-style burst merging, night and astro stacking, colour science and DNG writing. Open-source AI models run on the device for denoising and zoom. The interface is an original flagship-style layout: lens pills, a mode carousel, a Pro panel with ruler dials, and a big shutter.
 
 Every hardware capability is reached through **public platform APIs only**, at the highest level each phone exposes. There is no root, no HAL patching, no private iOS APIs and no thermal-limit bypass. [docs/HARDWARE_UNLOCKS.md](docs/HARDWARE_UNLOCKS.md) explains why, and what that means for each feature.
@@ -19,6 +29,37 @@ Every hardware capability is reached through **public platform APIs only**, at t
 | **Audio** | AAC 48 kHz stereo, external mics | AAC or 24-bit PCM, external USB-C / Bluetooth mics |
 | **Viewfinder** | RGB + luma histogram, focus peaking, zebras, level, grid | + luma waveform |
 | **Safety** | Thermal warning; stops recording when severe | Thermal warning; stops recording when critical |
+
+## Test results
+
+Every push runs the core test suite and the real apps on an **Android emulator** and an **iOS Simulator** in GitHub Actions ([device-tests.yml](.github/workflows/device-tests.yml)). Raw logs, screenshots and the captured photo are in [`docs/test-results/`](docs/test-results), which the workflow updates after each run.
+
+Run on commit `503e4ac`, 27 Nov 2026:
+
+| | Android | iOS |
+|---|---|---|
+| Device | Android 14 emulator (API 34, x86_64, 2 cores) | iPhone 17 Pro Max Simulator, iOS 26.5 (Apple M1 host, arm64) |
+| Core test suite | **83 / 83 passed** | **83 / 83 passed** |
+| 8-frame low-light burst (handheld shake) | 31.64 → **37.04 dB** PSNR (+5.40 dB) | 31.64 → **37.04 dB** (+5.40 dB) |
+| Ghosting (moving object) | error 0.0071 vs 0.0546 naive average | identical |
+| Astro: star registration | rotation 0.663° found vs 0.660° true, 0.017 px error | identical |
+| Astro: sky noise after stacking | 3.76× lower, 60/60 hot pixels removed | identical |
+| 12 MP merge speed | 1.80 s / frame (emulator, 2 threads) | 0.60 s / frame (3 threads) |
+| App install + cold launch | ✅ 2.3 s, no crashes | ✅ launches, no crash reports |
+| Leave the app and return | ✅ camera reopens | — |
+| Shutter → photo saved to DCIM/Lumen | ✅ (emulated camera scene) | — (no camera in the Simulator) |
+
+<p>
+<img src="docs/test-results/android/after-resume.png" width="200" alt="Android emulator: live preview with histogram">
+<img src="docs/test-results/android/photo.jpg" width="200" alt="Photo captured on the Android emulator">
+<img src="docs/test-results/ios/launch.png" width="200" alt="iOS Simulator: camera UI">
+</p>
+
+*Android preview with live histogram · photo the emulator saved · the iOS interface (the Simulator has no camera, so its viewfinder is black).*
+
+**What these tests do not cover yet:** emulators and simulators have no real image sensor. The emulator's camera is a synthetic scene and offers no RAW, so the Lumen burst on real RAW, Night, Astro, ProRAW, Log/ProRes video and the AI models have not been run on a physical phone. The algorithms behind them are covered by the core tests above. Results from real phones are very welcome: please open a [device report](https://github.com/jeshiomurmu/lumen-camera/issues/new?template=device-report.yml).
+
+The emulator test also caught a real bug: after leaving and returning to the app, the Android camera stayed closed. It is fixed in 1.0.8.
 
 ## Repository layout
 
@@ -79,13 +120,9 @@ open LumenCamera.xcodeproj    # set your Team under Signing, run on an iPhone
 
 You need **Xcode 26** (iOS 26 SDK). The app runs on iOS 17+; features that need a newer iOS are guarded at runtime. For AI on iOS, run the export with `--coreml` and compile the models into `ios/LumenCamera/Resources/Models/` with `xcrun coremlcompiler compile <model>.mlpackage ios/LumenCamera/Resources/Models/`.
 
-## What was verified, and what needs your hardware
+## Contributing
 
-- **Imaging core:** builds warning-free; **82/82 tests pass** on a physically modelled synthetic camera (noise, optics blur, hand shake, moving objects, stars, hot pixels, a satellite trail). For example, an 8-frame low-light burst goes from 31.7 dB to 37.1 dB PSNR. Ghosting error is 0.007 against 0.055 for naive averaging. Star rotation is recovered within 0.002°, and stacking lowers sky noise 4.2×. LibRaw reads all written DNGs.
-- **AI export:** ONNX vs PyTorch max error 1e-7. Tiled inference equals full-image inference (max error 6e-8). The Kotlin tiler was run against reference models and gave exact output.
-- **Android:** the release APK builds on GitHub Actions (Android SDK 36, NDK 27).
-- **iOS:** the app builds with Xcode 26 on GitHub's macOS runners.
-- **Not yet done:** real-device runs. Camera behaviour differs between phones, so expect small fixes on first build. Every capability is probed at runtime (see the in-app *Hardware report*), so unsupported options are hidden or reported instead of crashing.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the roadmap, how to run the core tests without a phone, and good first tasks. Bug reports and feature ideas go in [Issues](https://github.com/jeshiomurmu/lumen-camera/issues/new/choose).
 
 ## Design decisions
 
