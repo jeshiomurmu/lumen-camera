@@ -1,0 +1,48 @@
+# XcodeGen spec — generate the Xcode project with:
+#   brew install xcodegen && cd ios && xcodegen
+# then open LumenCamera.xcodeproj, set your Team under Signing, and run on a device.
+name: LumenCamera
+options:
+  bundleIdPrefix: app.lumen
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+packages:
+  onnxruntime:
+    url: https://github.com/microsoft/onnxruntime-swift-package-manager
+    from: "1.20.0"
+targets:
+  LumenCamera:
+    type: application
+    platform: iOS
+    sources:
+      - path: LumenCamera
+        excludes:
+          - "Resources/Models/README.md"
+          - "App/Info.plist"
+      - path: ../core/src          # shared C++ imaging core (same code as Android)
+      - path: ../core/include
+        buildPhase: none
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.lumen.camera
+        PRODUCT_NAME: Lumen
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        SWIFT_OBJC_BRIDGING_HEADER: LumenCamera/Bridge/LumenCamera-Bridging-Header.h
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/../core/include $(SRCROOT)/../core/src"
+        CLANG_CXX_LANGUAGE_STANDARD: "c++17"
+        CLANG_CXX_LIBRARY: "libc++"
+        OTHER_CPLUSPLUSFLAGS: "-O3 -ffast-math -fno-finite-math-only"
+        GCC_OPTIMIZATION_LEVEL: "3"
+        INFOPLIST_FILE: LumenCamera/App/Info.plist
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    scheme: {}
+    dependencies:
+      - package: onnxruntime
+        product: onnxruntime

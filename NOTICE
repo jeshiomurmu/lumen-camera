@@ -1,0 +1,31 @@
+Lumen Camera
+Copyright 2026 the Lumen Camera authors. Licensed under the Apache License 2.0.
+
+This product includes or downloads the following third-party components:
+
+ONNX Runtime (Microsoft) — MIT License
+  https://github.com/microsoft/onnxruntime
+  Used as a dependency (Maven: com.microsoft.onnxruntime:onnxruntime-android;
+  Swift Package: onnxruntime-swift-package-manager).
+
+FFDNet colour denoiser weights — KAIR toolbox (Kai Zhang et al.) — MIT License
+  https://github.com/cszn/KAIR
+  Downloaded by tools/export_models.py; network re-implemented in that script.
+
+Real-ESRGAN general-x4v3 weights (Xintao Wang et al.) — BSD 3-Clause License
+  https://github.com/xinntao/Real-ESRGAN
+  Downloaded by tools/export_models.py; network re-implemented in that script.
+
+Algorithms re-implemented from the literature (no code copied):
+  - Hasinoff et al., "Burst photography for high dynamic range and low-light
+    imaging on mobile cameras", ACM TOG 35(6), 2016 (HDR+ align and merge).
+  - Malvar, He, Cutler, "High-quality linear interpolation for demosaicing of
+    Bayer-patterned color images", ICASSP 2004.
+  - Mertens, Kautz, Van Reeth, "Exposure fusion", Pacific Graphics 2007.
+  - He, Sun, Tang, "Guided image filtering", ECCV 2010 / TPAMI 2013.
+  - Kim et al., "Design of advanced color temperature control system for HDTV
+    applications" (Planckian locus approximation).
+  - Valdes et al. triangle-invariant star matching (as popularised by astroalign).
+  - Midtone transfer function auto-stretch as described for PixInsight STF.
+
+Adobe DNG is a format specification by Adobe; Lumen writes DNG 1.4 files.
