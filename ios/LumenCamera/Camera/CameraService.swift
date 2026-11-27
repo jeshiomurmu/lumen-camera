@@ -138,6 +138,8 @@ final class CameraService: NSObject {
             ?? AVCaptureDevice.default(.builtInTrueDepthCamera, for: .video, position: .front)
     }
 
+    static func area(_ d: CMVideoDimensions) -> Int { Int(d.width) * Int(d.height) }
+
     private static func halfTan(_ d: AVCaptureDevice) -> Double {
         tan(Double(d.activeFormat.videoFieldOfView) * .pi / 360.0)
     }
@@ -228,7 +230,10 @@ final class CameraService: NSObject {
                 out.insert(VideoModeOption(width: dims.width, height: dims.height, fps: fps))
             }
         }
-        return out.sorted { (Int($0.width) * Int($0.height), $0.fps) > (Int($1.width) * Int($1.height), $1.fps) }
+        return out.sorted { a, b in
+            let pa = Int(a.width) * Int(a.height), pb = Int(b.width) * Int(b.height)
+            return pa != pb ? pa > pb : a.fps > b.fps
+        }
     }
 
     // ---- configuration ---------------------------------------------------------------------
@@ -342,9 +347,9 @@ final class CameraService: NSObject {
             session.addOutput(photoOutput)
             photoOutput.maxPhotoQualityPrioritization = .quality
             let dims = device.activeFormat.supportedMaxPhotoDimensions
-            if let biggest = dims.max(by: { Int($0.width) * Int($0.height) < Int($1.width) * Int($1.height) }) {
-                let twelve = dims.filter { Int($0.width) * Int($0.height) <= 13_000_000 }
-                    .max(by: { Int($0.width) * Int($0.height) < Int($1.width) * Int($1.height) })
+            if let biggest = dims.max(by: { Self.area($0) < Self.area($1) }) {
+                let twelve = dims.filter { Self.area($0) <= 13_000_000 }
+                    .max(by: { Self.area($0) < Self.area($1) })
                 photoOutput.maxPhotoDimensions = settings.maxResolution ? biggest : (twelve ?? biggest)
             }
             photoOutput.isAppleProRAWEnabled = settings.photoEngine == .proRAW && photoOutput.isAppleProRAWSupported
@@ -690,8 +695,16 @@ final class CameraService: NSObject {
             out.append(("  Shutter", "1/\(Int((1 / max(tMin, 1e-9)).rounded())) – \(String(format: "%.2f", tMax)) s"))
             out.append(("  Aperture · FOV", String(format: "ƒ%.2f · %.0f°", d.lensAperture, d.activeFormat.videoFieldOfView)))
             out.append(("  Min focus", d.minimumFocusDistance > 0 ? "\(d.minimumFocusDistance) mm" : "n/a"))
-            let photo = fmts.flatMap { $0.supportedMaxPhotoDimensions }.max { Int($0.width) * Int($0.height) < Int($1.width) * Int($1.height) }
-            if let p = photo { out.append(("  Max photo", "\(p.width)x\(p.height) (\(Int(p.width) * Int(p.height) / 1_000_000) MP)")) }
+            var best = CMVideoDimensions(width: 0, height: 0)
+            for f in fmts {
+                for dim in f.supportedMaxPhotoDimensions where Int(dim.width) * Int(dim.height) > Int(best.width) * Int(best.height) {
+                    best = dim
+                }
+            }
+            if best.width > 0 {
+                let mp = Int(best.width) * Int(best.height) / 1_000_000
+                out.append(("  Max photo", "\(best.width)x\(best.height) (\(mp) MP)"))
+            }
             let modes = Self.videoModes(for: d)
             if let top = modes.first { out.append(("  Max video", top.label)) }
             let hfr = modes.filter { $0.fps >= 100 }.map { $0.label }

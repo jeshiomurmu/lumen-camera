@@ -232,8 +232,8 @@ final class PhotoPipeline {
             s.photoQualityPrioritization = .quality
         }
         if bayer, let d = camera.device {
-            let small = d.activeFormat.supportedMaxPhotoDimensions.filter { Int($0.width) * Int($0.height) <= 13_000_000 }
-                .max { Int($0.width) * Int($0.height) < Int($1.width) * Int($1.height) }
+            let small = d.activeFormat.supportedMaxPhotoDimensions.filter { CameraService.area($0) <= 13_000_000 }
+                .max { CameraService.area($0) < CameraService.area($1) }
             if let small { s.maxPhotoDimensions = small }
         }
         let fm: AVCaptureDevice.FlashMode = flash == .on ? .on : (flash == .auto ? .auto : .off)

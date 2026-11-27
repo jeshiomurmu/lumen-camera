@@ -102,8 +102,9 @@ struct DngMetaSpec {
 
     /// Calls `body` with a C struct whose strings stay valid for the call.
     func withC(_ body: (UnsafePointer<LumenDngMeta>) -> Int32) -> Int32 {
-        let strings = [make, model, "\(make) \(model)", "Lumen Camera \(String(cString: lumen_core_version()))",
-                       DngMetaSpec.dateString()].map { strdup($0) }
+        let texts: [String] = [make, model, "\(make) \(model)", "Lumen Camera \(String(cString: lumen_core_version()))",
+                               DngMetaSpec.dateString()]
+        let strings: [UnsafeMutablePointer<CChar>?] = texts.map { (t: String) in t.withCString { strdup($0) } }
         defer { strings.forEach { free($0) } }
         var m = LumenDngMeta()
         m.make = UnsafePointer(strings[0])
