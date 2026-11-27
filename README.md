@@ -34,6 +34,13 @@ luts/            LumenLog_to_Rec709.cube
 docs/            ARCHITECTURE.md, HARDWARE_UNLOCKS.md
 ```
 
+## Download
+
+Ready-made installers are on the [Releases page](https://github.com/jeshiomurmu/lumen-camera/releases/latest), built by GitHub Actions on every push:
+
+- **Android:** open the `.apk` on your phone and allow installing unknown apps.
+- **iOS:** sign and install the `-unsigned.ipa` with [Sideloadly](https://sideloadly.io) or [AltStore](https://altstore.io) using your Apple ID (re-sign every 7 days with a free Apple ID).
+
 ## Build
 
 ### 1. Imaging core and tests (PC — optional, but a quick sanity check)
@@ -52,7 +59,8 @@ pip install rawpy tifffile numpy && python core/tests/validate_dng.py out/
 pip install torch onnx onnxruntime numpy
 python tools/export_models.py --out models
 cp models/*.onnx android/app/src/main/assets/models/
-cp models/*.onnx ios/LumenCamera/Resources/Models/
+# iOS: add --coreml to the export, then for each model:
+# xcrun coremlcompiler compile models/<name>.mlpackage ios/LumenCamera/Resources/Models/
 ```
 
 The script downloads the official FFDNet and Real-ESRGAN weights. It exports fixed-tile ONNX graphs that the Neural Engine and NNAPI can run whole, and checks them against PyTorch. Without the models the apps still work; the AI switches simply have no effect.
@@ -75,8 +83,8 @@ You need **Xcode 26** (iOS 26 SDK). The app runs on iOS 17+; features that need 
 
 - **Imaging core:** builds warning-free; **82/82 tests pass** on a physically modelled synthetic camera (noise, optics blur, hand shake, moving objects, stars, hot pixels, a satellite trail). For example, an 8-frame low-light burst goes from 31.7 dB to 37.1 dB PSNR. Ghosting error is 0.007 against 0.055 for naive averaging. Star rotation is recovered within 0.002°, and stacking lowers sky noise 4.2×. LibRaw reads all written DNGs.
 - **AI export:** ONNX vs PyTorch max error 1e-7. Tiled inference equals full-image inference (max error 6e-8). The Kotlin tiler was run against reference models and gave exact output.
-- **Android:** the Kotlin sources were checked with `kotlinc`. The AI module was compiled against API stubs. The JNI layer was compiled against stub headers. The full app was **not built here**: there is no Android SDK in this environment.
-- **iOS:** all Swift files pass a syntax check. The newer iOS 18 / iOS 26 API names (Camera Control, capture events, deferred start, ProRes RAW, Apple Log 2) were checked against Apple's documentation. The app was **not compiled here**: Xcode needs a Mac.
+- **Android:** the release APK builds on GitHub Actions (Android SDK 36, NDK 27).
+- **iOS:** the app builds with Xcode 26 on GitHub's macOS runners.
 - **Not yet done:** real-device runs. Camera behaviour differs between phones, so expect small fixes on first build. Every capability is probed at runtime (see the in-app *Hardware report*), so unsupported options are hidden or reported instead of crashing.
 
 ## Design decisions

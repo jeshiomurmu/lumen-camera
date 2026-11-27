@@ -132,6 +132,9 @@ jobs:
         run: |
           mkdir -p Payload ../dist
           cp -R build/Build/Products/Release-iphoneos/Lumen.app Payload/
+          ls -la Payload/Lumen.app Payload/Lumen.app/Models || true
+          du -sh Payload/Lumen.app/Lumen Payload/Lumen.app/Models || true
+          test -d Payload/Lumen.app/Models/lumen_denoise.mlmodelc || echo "::warning::AI models are not in the app bundle"
           zip -qry "../dist/LumenCamera-1.0.${GITHUB_RUN_NUMBER}-unsigned.ipa" Payload
           ls -la ../dist
       - name: Report build errors
