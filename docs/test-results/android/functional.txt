@@ -1,28 +1,28 @@
-launch: 1743 ms cold start
+launch: 2200 ms cold start
 resume: ok
-photo 1: shot kind=isp shutter_free=563ms saved=940ms aspect=3:4
-photo 2: shot kind=isp shutter_free=300ms saved=704ms aspect=3:4
-photo 3: shot kind=isp shutter_free=268ms saved=414ms aspect=3:4
-rapid shots: 5/5 saved within 3504 ms of the first tap (taps 300 ms apart)
-  shot kind=isp shutter_free=300ms saved=616ms aspect=3:4
-  shot kind=isp shutter_free=361ms saved=361ms aspect=3:4
-  shot kind=isp shutter_free=328ms saved=999ms aspect=3:4
-  shot kind=isp shutter_free=338ms saved=656ms aspect=3:4
-  shot kind=isp shutter_free=343ms saved=673ms aspect=3:4
-aspect 3:4: saved 1856x1392 (exif orientation 6), long/short 1.333 · shot kind=isp shutter_free=366ms saved=504ms aspect=3:4
-aspect 9:16: saved 1280x720 (exif orientation 6), long/short 1.778 · shot kind=isp shutter_free=374ms saved=410ms aspect=9:16
-aspect 1:1: saved 1392x1392 (exif orientation 6), long/short 1.000 · shot kind=isp shutter_free=295ms saved=406ms aspect=1:1
-aspect Full: saved 1280x576 (exif orientation 6), long/short 2.222 · shot kind=isp shutter_free=324ms saved=477ms aspect=Full
+photo 1: shot kind=isp shutter_free=594ms saved=1178ms aspect=3:4
+photo 2: shot kind=isp shutter_free=365ms saved=902ms aspect=3:4
+photo 3: shot kind=isp shutter_free=383ms saved=645ms aspect=3:4
+rapid shots: 5/5 saved within 3024 ms of the first tap (taps 300 ms apart)
+  shot kind=isp shutter_free=333ms saved=520ms aspect=3:4
+  shot kind=isp shutter_free=474ms saved=1015ms aspect=3:4
+  shot kind=isp shutter_free=400ms saved=629ms aspect=3:4
+  shot kind=isp shutter_free=466ms saved=725ms aspect=3:4
+  shot kind=isp shutter_free=426ms saved=649ms aspect=3:4
+aspect 3:4: saved 1856x1392 (exif orientation 6), long/short 1.333 · shot kind=isp shutter_free=432ms saved=562ms aspect=3:4
+aspect 9:16: saved 1280x720 (exif orientation 6), long/short 1.778 · shot kind=isp shutter_free=448ms saved=570ms aspect=9:16
+aspect 1:1: saved 1392x1392 (exif orientation 6), long/short 1.000 · shot kind=isp shutter_free=300ms saved=470ms aspect=1:1
+aspect Full: saved 1280x576 (exif orientation 6), long/short 2.222 · shot kind=isp shutter_free=319ms saved=615ms aspect=Full
 frame rates offered (this camera): 15 fps, 24 fps, 25 fps, 30 fps
 bitrate: 150 Mb/s selected
-video: codec_name=h264 width=1280 height=720 avg_frame_rate=6150000/253139 bit_rate=314196 
-video file: 667626 bytes
+video: codec_name=h264 width=1280 height=720 avg_frame_rate=19800000/906463 bit_rate=292532 
+video file: 764778 bytes
 video request: record HD 30fps codec=H.264 encoder=c2.android.avc.encoder bitrate=150Mb/s (encoder max 12)
-night (multi-frame merge of the phone's frames): shot kind=night-merge shutter_free=1665ms saved=3454ms aspect=3:4
-night file: NIGHT_20261127_151058_714.jpg
-lumen raw merge: shot kind=raw-burst shutter_free=744ms saved=10233ms aspect=3:4
-frames: 5406 rendered, janky 4788 (88.57%)
-frame time: 50th 34ms, 90th 61ms, 99th 101ms
+night (multi-frame merge of the phone's frames): shot kind=night-merge shutter_free=1664ms saved=6063ms aspect=3:4
+night file: NIGHT_20261127_153153_603.jpg
+lumen raw merge: shot kind=raw-burst shutter_free=1128ms saved=19525ms aspect=3:4
+frames: 4923 rendered, janky 4697 (95.41%)
+frame time: 50th 53ms, 90th 85ms, 99th 129ms
 ui thread blocked by camera calls: 0 times
-session rebuilds: 15, slowest 584ms
+session rebuilds: 15, slowest 722ms
 crashes: 0

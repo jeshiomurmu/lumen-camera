@@ -1,2 +1,2 @@
-app.lumen.camera: 16352
+app.lumen.camera: 11920
 running after launch: yes

@@ -1,200 +1,200 @@
-11-27 15:09:08.535  1577  1679 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796396948-IMG_20261127_150908_522.jpg. Uid: 10192
-11-27 15:09:08.539  1577  1679 D MediaProvider: Moving /storage/emulated/0/DCIM/Lumen/.pending-1796396948-IMG_20261127_150908_522.jpg to /storage/emulated/0/DCIM/Lumen/IMG_20261127_150908_522.jpg
-11-27 15:09:08.562  7177  7177 I LumenPerf: shot kind=isp shutter_free=374ms saved=410ms aspect=9:16
-11-27 15:09:09.735  8606  8606 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:09:09.758  8606  8606 I AndroidRuntime: Using default boot image
-11-27 15:09:09.759  8606  8606 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:09:10.084  8606  8606 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:09:11.390  8606  8606 D AndroidRuntime: Shutting down VM
-11-27 15:09:13.868  8627  8627 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:09:13.872  8627  8627 I AndroidRuntime: Using default boot image
-11-27 15:09:13.872  8627  8627 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:09:14.175  8627  8627 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:09:15.835  8627  8627 D AndroidRuntime: Shutting down VM
-11-27 15:09:17.235  7177  7580 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onCaptureStarted(android.hardware.camera2.impl.CaptureResultExtras, long) for 265ms
-11-27 15:09:17.239  7177  7219 I LumenPerf: session mode=PHOTO aspect=1:1 night=false yuv=false raw=false 283ms
-11-27 15:09:20.809  8664  8664 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:09:20.813  8664  8664 I AndroidRuntime: Using default boot image
-11-27 15:09:20.813  8664  8664 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:09:20.978  8664  8664 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:09:22.206  8664  8664 D AndroidRuntime: Shutting down VM
-11-27 15:09:23.543  1577  1679 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796396963-IMG_20261127_150923_521.jpg. Uid: 10192
-11-27 15:09:23.578  1577  1679 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796396963-IMG_20261127_150923_521.jpg. Uid: 10192
-11-27 15:09:23.604  1577  1679 D MediaProvider: Moving /storage/emulated/0/DCIM/Lumen/.pending-1796396963-IMG_20261127_150923_521.jpg to /storage/emulated/0/DCIM/Lumen/IMG_20261127_150923_521.jpg
-11-27 15:09:23.634  7177  7177 I LumenPerf: shot kind=isp shutter_free=295ms saved=406ms aspect=1:1
-11-27 15:09:24.651  8707  8707 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:09:24.671  8707  8707 I AndroidRuntime: Using default boot image
-11-27 15:09:24.671  8707  8707 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:09:24.874  8707  8707 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:09:26.114  8707  8707 D AndroidRuntime: Shutting down VM
-11-27 15:09:28.129  8729  8729 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:09:28.134  8729  8729 I AndroidRuntime: Using default boot image
-11-27 15:09:28.134  8729  8729 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:09:28.263  8729  8729 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:09:29.800  8729  8729 D AndroidRuntime: Shutting down VM
-11-27 15:09:31.082  7177  7188 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onCaptureStarted(android.hardware.camera2.impl.CaptureResultExtras, long) for 303ms
-11-27 15:09:31.100  7177  7219 I LumenPerf: session mode=PHOTO aspect=Full night=false yuv=false raw=false 349ms
-11-27 15:09:34.983  8780  8780 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:09:34.987  8780  8780 I AndroidRuntime: Using default boot image
-11-27 15:09:34.987  8780  8780 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:09:35.253  8780  8780 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:09:36.571  8780  8780 D AndroidRuntime: Shutting down VM
-11-27 15:09:37.953  1577  1679 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796396977-IMG_20261127_150937_940.jpg. Uid: 10192
-11-27 15:09:37.998  1577  1679 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796396977-IMG_20261127_150937_940.jpg. Uid: 10192
-11-27 15:09:38.015  1577  1679 D MediaProvider: Moving /storage/emulated/0/DCIM/Lumen/.pending-1796396977-IMG_20261127_150937_940.jpg to /storage/emulated/0/DCIM/Lumen/IMG_20261127_150937_940.jpg
-11-27 15:09:38.099  7177  7177 I LumenPerf: shot kind=isp shutter_free=324ms saved=477ms aspect=Full
-11-27 15:09:39.185  8818  8818 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:09:39.235  8818  8818 I AndroidRuntime: Using default boot image
-11-27 15:09:39.235  8818  8818 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:09:39.476  8818  8818 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:09:40.945  8818  8818 D AndroidRuntime: Shutting down VM
-11-27 15:09:43.244  8840  8840 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:09:43.248  8840  8840 I AndroidRuntime: Using default boot image
-11-27 15:09:43.249  8840  8840 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:09:43.376  8840  8840 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:09:44.642  8840  8840 D AndroidRuntime: Shutting down VM
-11-27 15:09:46.107  7177  7211 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 299ms
-11-27 15:09:46.108  7177  7219 I LumenPerf: session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 336ms
-11-27 15:09:48.008  8868  8868 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:09:48.036  8868  8868 I AndroidRuntime: Using default boot image
-11-27 15:09:48.036  8868  8868 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:09:48.181  8868  8868 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:09:49.505  8868  8868 D AndroidRuntime: Shutting down VM
-11-27 15:09:53.196  8894  8894 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:09:53.200  8894  8894 I AndroidRuntime: Using default boot image
-11-27 15:09:53.200  8894  8894 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:09:53.341  8894  8894 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:09:54.499  8894  8894 D AndroidRuntime: Shutting down VM
-11-27 15:09:57.966  8922  8922 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:09:57.970  8922  8922 I AndroidRuntime: Using default boot image
-11-27 15:09:57.971  8922  8922 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:09:58.074  8922  8922 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:09:59.205  8922  8922 D AndroidRuntime: Shutting down VM
-11-27 15:10:02.286  8949  8949 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:10:02.293  8949  8949 I AndroidRuntime: Using default boot image
-11-27 15:10:02.293  8949  8949 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:10:02.422  8949  8949 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:10:03.561  8949  8949 D AndroidRuntime: Shutting down VM
-11-27 15:10:04.580  8969  8969 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:10:04.584  8969  8969 I AndroidRuntime: Using default boot image
-11-27 15:10:04.584  8969  8969 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:10:04.756  8969  8969 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:10:05.897  8969  8969 D AndroidRuntime: Shutting down VM
-11-27 15:10:07.946  8991  8991 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:10:07.953  8991  8991 I AndroidRuntime: Using default boot image
-11-27 15:10:07.953  8991  8991 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:10:08.068  8991  8991 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:10:09.192  8991  8991 D AndroidRuntime: Shutting down VM
-11-27 15:10:12.318  9020  9020 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:10:12.323  9020  9020 I AndroidRuntime: Using default boot image
-11-27 15:10:12.323  9020  9020 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:10:12.511  9020  9020 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:10:13.656  9020  9020 D AndroidRuntime: Shutting down VM
-11-27 15:10:18.923  9062  9062 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:10:18.933  9062  9062 I AndroidRuntime: Using default boot image
-11-27 15:10:18.933  9062  9062 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:10:19.142  9062  9062 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:10:20.435  9062  9062 D AndroidRuntime: Shutting down VM
-11-27 15:10:21.742  7177  7187 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onResultReceived(android.hardware.camera2.impl.CameraMetadataNative, android.hardware.camera2.impl.CaptureResultExtras, android.hardware.camera2.impl.PhysicalCaptureResultInfo[]) for 260ms
-11-27 15:10:21.750  7177  7219 I LumenPerf: session mode=VIDEO aspect=3:4 night=false yuv=false raw=false 314ms
-11-27 15:10:26.496  9095  9095 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:10:26.531  9095  9095 I AndroidRuntime: Using default boot image
-11-27 15:10:26.531  9095  9095 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:10:26.702  9095  9095 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:10:28.185  9095  9095 D AndroidRuntime: Shutting down VM
-11-27 15:10:29.340  1577  1684 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796397029-VID_20261127_151029_330.mp4. Uid: 10192
-11-27 15:10:30.378  7177  7211 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 297ms
-11-27 15:10:30.378  7177  7924 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onCaptureStarted(android.hardware.camera2.impl.CaptureResultExtras, long) for 297ms
-11-27 15:10:30.412  7177  7219 I LumenPerf: record HD 30fps codec=H.264 encoder=c2.android.avc.encoder bitrate=150Mb/s (encoder max 12)
-11-27 15:10:36.235  9284  9284 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:10:36.244  9284  9284 I AndroidRuntime: Using default boot image
-11-27 15:10:36.244  9284  9284 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:10:36.565  9284  9284 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:10:37.753  9284  9284 D AndroidRuntime: Shutting down VM
-11-27 15:10:39.026  1577  1684 D MediaProvider: Moving /storage/emulated/0/DCIM/Lumen/.pending-1796397029-VID_20261127_151029_330.mp4 to /storage/emulated/0/DCIM/Lumen/VID_20261127_151029_330.mp4
-11-27 15:10:39.244  1577  1684 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/VID_20261127_151029_330.mp4. Uid: 10192
-11-27 15:10:39.478  7177  7211 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 116ms
-11-27 15:10:39.484  7177  7219 I LumenPerf: session mode=VIDEO aspect=3:4 night=false yuv=false raw=false 121ms
-11-27 15:10:39.909  9419  9419 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:10:39.913  9419  9419 I AndroidRuntime: Using default boot image
-11-27 15:10:39.913  9419  9419 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:10:40.129  9419  9419 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:10:41.462  9419  9419 D AndroidRuntime: Shutting down VM
-11-27 15:10:42.930  7177  8553 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onCaptureStarted(android.hardware.camera2.impl.CaptureResultExtras, long) for 306ms
-11-27 15:10:42.938  7177  7219 I LumenPerf: session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 323ms
-11-27 15:10:45.825  9446  9446 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:10:45.830  9446  9446 I AndroidRuntime: Using default boot image
-11-27 15:10:45.830  9446  9446 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:10:46.057  9446  9446 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:10:47.406  9446  9446 D AndroidRuntime: Shutting down VM
-11-27 15:10:48.699  7177  7191 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onCaptureStarted(android.hardware.camera2.impl.CaptureResultExtras, long) for 284ms
-11-27 15:10:48.715  7177  7219 I LumenPerf: session mode=PHOTO aspect=3:4 night=true yuv=true raw=false 333ms
-11-27 15:10:52.804  9479  9479 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:10:52.814  9479  9479 I AndroidRuntime: Using default boot image
-11-27 15:10:52.818  9479  9479 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:10:53.141  9479  9479 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:10:54.405  9479  9479 D AndroidRuntime: Shutting down VM
-11-27 15:10:56.768  7177  7183 I pp.lumen.camera: Background concurrent copying GC freed 76279(2978KB) AllocSpace objects, 0(0B) LOS objects, 49% free, 16MB/32MB, paused 55.675ms,10us total 293.061ms
-11-27 15:10:58.757  1577  1684 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796397058-NIGHT_20261127_151058_714.jpg. Uid: 10192
-11-27 15:10:58.822  1577  1684 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796397058-NIGHT_20261127_151058_714.jpg. Uid: 10192
-11-27 15:10:58.840  1577  1684 D MediaProvider: Moving /storage/emulated/0/DCIM/Lumen/.pending-1796397058-NIGHT_20261127_151058_714.jpg to /storage/emulated/0/DCIM/Lumen/NIGHT_20261127_151058_714.jpg
-11-27 15:10:58.873  7177  7177 I LumenPerf: shot kind=night-merge shutter_free=1665ms saved=3454ms aspect=3:4
-11-27 15:11:00.661  9616  9616 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:11:00.666  9616  9616 I AndroidRuntime: Using default boot image
-11-27 15:11:00.668  9616  9616 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:11:01.039  9616  9616 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:11:02.442  9616  9616 D AndroidRuntime: Shutting down VM
-11-27 15:11:03.926  7177  7211 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 311ms
-11-27 15:11:03.927  7177  9435 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onCaptureStarted(android.hardware.camera2.impl.CaptureResultExtras, long) for 295ms
-11-27 15:11:03.942  7177  7219 I LumenPerf: session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 337ms
-11-27 15:11:06.774  9643  9643 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:11:06.809  9643  9643 I AndroidRuntime: Using default boot image
-11-27 15:11:06.809  9643  9643 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:11:06.963  9643  9643 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:11:08.348  9643  9643 D AndroidRuntime: Shutting down VM
-11-27 15:11:11.491  9667  9667 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:11:11.494  9667  9667 I AndroidRuntime: Using default boot image
-11-27 15:11:11.495  9667  9667 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:11:11.790  9667  9667 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:11:12.969  9667  9667 D AndroidRuntime: Shutting down VM
-11-27 15:11:15.691  9691  9691 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:11:15.697  9691  9691 I AndroidRuntime: Using default boot image
-11-27 15:11:15.697  9691  9691 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:11:15.886  9691  9691 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:11:17.070  9691  9691 D AndroidRuntime: Shutting down VM
-11-27 15:11:19.147  9714  9714 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:11:19.151  9714  9714 I AndroidRuntime: Using default boot image
-11-27 15:11:19.151  9714  9714 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:11:19.275  9714  9714 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:11:20.632  9714  9714 D AndroidRuntime: Shutting down VM
-11-27 15:11:21.960  7177  8553 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onCaptureStarted(android.hardware.camera2.impl.CaptureResultExtras, long) for 293ms
-11-27 15:11:21.961  7177  7219 I LumenPerf: session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 310ms
-11-27 15:11:27.217  9765  9765 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:11:27.221  9765  9765 I AndroidRuntime: Using default boot image
-11-27 15:11:27.221  9765  9765 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:11:27.405  9765  9765 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:11:28.771  9765  9765 D AndroidRuntime: Shutting down VM
-11-27 15:11:39.180  7177  7183 I pp.lumen.camera: NativeAlloc concurrent copying GC freed 12878(610KB) AllocSpace objects, 4(19MB) LOS objects, 49% free, 5091KB/10183KB, paused 18us,15us total 291.764ms
-11-27 15:11:39.921  1577  1676 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796397099-LUMEN_20261127_151139_890.jpg. Uid: 10192
-11-27 15:11:40.052  1577  1676 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796397099-LUMEN_20261127_151139_890.jpg. Uid: 10192
-11-27 15:11:40.059  1577  1676 D MediaProvider: Moving /storage/emulated/0/DCIM/Lumen/.pending-1796397099-LUMEN_20261127_151139_890.jpg to /storage/emulated/0/DCIM/Lumen/LUMEN_20261127_151139_890.jpg
-11-27 15:11:40.085  7177  7177 I LumenPerf: shot kind=raw-burst shutter_free=744ms saved=10233ms aspect=3:4
-11-27 15:11:40.510 10175 10175 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:11:40.513 10175 10175 I AndroidRuntime: Using default boot image
-11-27 15:11:40.513 10175 10175 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:11:40.755 10175 10175 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:11:42.278 10175 10175 D AndroidRuntime: Shutting down VM
-11-27 15:11:43.619  7177  7319 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onCaptureStarted(android.hardware.camera2.impl.CaptureResultExtras, long) for 285ms
-11-27 15:11:43.621  7177  7219 I LumenPerf: session mode=PRO aspect=3:4 night=false yuv=false raw=true 310ms
-11-27 15:11:46.459 10201 10201 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:11:46.480 10201 10201 I AndroidRuntime: Using default boot image
-11-27 15:11:46.481 10201 10201 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:11:46.630 10201 10201 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:11:48.021 10201 10201 D AndroidRuntime: Shutting down VM
-11-27 15:11:51.110 10227 10227 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
-11-27 15:11:51.116 10227 10227 I AndroidRuntime: Using default boot image
-11-27 15:11:51.116 10227 10227 I AndroidRuntime: Leaving lock profiling enabled
-11-27 15:11:51.241 10227 10227 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
-11-27 15:11:52.703 10227 10227 D AndroidRuntime: Shutting down VM
-11-27 15:11:53.990  7177  7924 W pp.lumen.camera: Long monitor contention with owner LumenControl (7219) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onResultReceived(android.hardware.camera2.impl.CameraMetadataNative, android.hardware.camera2.impl.CaptureResultExtras, android.hardware.camera2.impl.PhysicalCaptureResultInfo[]) for 314ms
-11-27 15:11:54.004  7177  7219 I LumenPerf: session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 329ms
+11-27 15:29:46.167  8501  8501 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:29:47.888  8501  8501 D AndroidRuntime: Shutting down VM
+11-27 15:29:50.379  8524  8524 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:29:50.387  8524  8524 I AndroidRuntime: Using default boot image
+11-27 15:29:50.387  8524  8524 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:29:50.646  8524  8524 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:29:52.783  8524  8524 D AndroidRuntime: Shutting down VM
+11-27 15:29:54.308  7415  7452 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 366ms
+11-27 15:29:54.308  7415  7428 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onCaptureStarted(android.hardware.camera2.impl.CaptureResultExtras, long) for 340ms
+11-27 15:29:54.328  7415  7462 I LumenPerf: session mode=PHOTO aspect=1:1 night=false yuv=false raw=false 390ms
+11-27 15:29:58.343  8561  8561 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:29:58.348  8561  8561 I AndroidRuntime: Using default boot image
+11-27 15:29:58.348  8561  8561 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:29:58.718  8561  8561 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:30:00.522  8561  8561 D AndroidRuntime: Shutting down VM
+11-27 15:30:02.007  1667  1753 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796398201-IMG_20261127_153001_953.jpg. Uid: 10192
+11-27 15:30:02.050  1667  1753 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796398201-IMG_20261127_153001_953.jpg. Uid: 10192
+11-27 15:30:02.078  1667  1753 D MediaProvider: Moving /storage/emulated/0/DCIM/Lumen/.pending-1796398201-IMG_20261127_153001_953.jpg to /storage/emulated/0/DCIM/Lumen/IMG_20261127_153001_953.jpg
+11-27 15:30:02.126  7415  7415 I LumenPerf: shot kind=isp shutter_free=300ms saved=470ms aspect=1:1
+11-27 15:30:03.495  8600  8600 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:30:03.505  8600  8600 I AndroidRuntime: Using default boot image
+11-27 15:30:03.505  8600  8600 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:30:03.824  8600  8600 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:30:05.274  8600  8600 D AndroidRuntime: Shutting down VM
+11-27 15:30:07.682  8623  8623 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:30:07.693  8623  8623 I AndroidRuntime: Using default boot image
+11-27 15:30:07.693  8623  8623 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:30:07.861  8623  8623 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:30:09.276  8623  8623 D AndroidRuntime: Shutting down VM
+11-27 15:30:10.816  7415  7773 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onCaptureStarted(android.hardware.camera2.impl.CaptureResultExtras, long) for 363ms
+11-27 15:30:10.816  7415  7452 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 362ms
+11-27 15:30:10.824  7415  7462 I LumenPerf: session mode=PHOTO aspect=Full night=false yuv=false raw=false 376ms
+11-27 15:30:14.850  8659  8659 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:30:14.856  8659  8659 I AndroidRuntime: Using default boot image
+11-27 15:30:14.856  8659  8659 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:30:15.290  8659  8659 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:30:17.022  8659  8659 D AndroidRuntime: Shutting down VM
+11-27 15:30:18.655  1667  2914 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796398218-IMG_20261127_153018_535.jpg. Uid: 10192
+11-27 15:30:18.679  1667  2914 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796398218-IMG_20261127_153018_535.jpg. Uid: 10192
+11-27 15:30:18.715  1667  2914 D MediaProvider: Moving /storage/emulated/0/DCIM/Lumen/.pending-1796398218-IMG_20261127_153018_535.jpg to /storage/emulated/0/DCIM/Lumen/IMG_20261127_153018_535.jpg
+11-27 15:30:18.846  7415  7415 I LumenPerf: shot kind=isp shutter_free=319ms saved=615ms aspect=Full
+11-27 15:30:20.308  8698  8698 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:30:20.322  8698  8698 I AndroidRuntime: Using default boot image
+11-27 15:30:20.324  8698  8698 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:30:20.577  8698  8698 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:30:22.139  8698  8698 D AndroidRuntime: Shutting down VM
+11-27 15:30:24.577  8720  8720 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:30:24.582  8720  8720 I AndroidRuntime: Using default boot image
+11-27 15:30:24.582  8720  8720 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:30:24.910  8720  8720 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:30:26.985  8720  8720 D AndroidRuntime: Shutting down VM
+11-27 15:30:28.564  7415  7452 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 459ms
+11-27 15:30:28.564  7415  7595 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onResultReceived(android.hardware.camera2.impl.CameraMetadataNative, android.hardware.camera2.impl.CaptureResultExtras, android.hardware.camera2.impl.PhysicalCaptureResultInfo[]) for 459ms
+11-27 15:30:28.567  7415  7462 I LumenPerf: session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 489ms
+11-27 15:30:30.396  8749  8749 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:30:30.407  8749  8749 I AndroidRuntime: Using default boot image
+11-27 15:30:30.407  8749  8749 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:30:30.794  8749  8749 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:30:32.114  7415  7421 I pp.lumen.camera: Background concurrent copying GC freed 117257(4602KB) AllocSpace objects, 6(292KB) LOS objects, 49% free, 5169KB/10MB, paused 43us,11us total 180.130ms
+11-27 15:30:32.144  8749  8749 D AndroidRuntime: Shutting down VM
+11-27 15:30:36.432  8777  8777 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:30:36.441  8777  8777 I AndroidRuntime: Using default boot image
+11-27 15:30:36.441  8777  8777 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:30:36.783  8777  8777 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:30:38.016  8777  8777 D AndroidRuntime: Shutting down VM
+11-27 15:30:42.161  8806  8806 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:30:42.166  8806  8806 I AndroidRuntime: Using default boot image
+11-27 15:30:42.166  8806  8806 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:30:42.404  8806  8806 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:30:43.801  8806  8806 D AndroidRuntime: Shutting down VM
+11-27 15:30:47.641  8837  8837 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:30:47.675  8837  8837 I AndroidRuntime: Using default boot image
+11-27 15:30:47.675  8837  8837 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:30:48.010  8837  8837 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:30:49.682  8837  8837 D AndroidRuntime: Shutting down VM
+11-27 15:30:50.876  8862  8862 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:30:50.898  8862  8862 I AndroidRuntime: Using default boot image
+11-27 15:30:50.898  8862  8862 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:30:51.326  8862  8862 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:30:52.879  8862  8862 D AndroidRuntime: Shutting down VM
+11-27 15:30:55.239  8886  8886 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:30:55.248  8886  8886 I AndroidRuntime: Using default boot image
+11-27 15:30:55.248  8886  8886 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:30:55.516  8886  8886 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:30:56.985  8886  8886 D AndroidRuntime: Shutting down VM
+11-27 15:31:00.679  8913  8913 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:31:00.684  8913  8913 I AndroidRuntime: Using default boot image
+11-27 15:31:00.684  8913  8913 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:31:00.996  8913  8913 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:31:02.430  8913  8913 D AndroidRuntime: Shutting down VM
+11-27 15:31:08.005  8952  8952 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:31:08.050  8952  8952 I AndroidRuntime: Using default boot image
+11-27 15:31:08.053  8952  8952 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:31:08.327  8952  8952 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:31:09.846  8952  8952 D AndroidRuntime: Shutting down VM
+11-27 15:31:11.296  7415  7462 I LumenPerf: session mode=VIDEO aspect=3:4 night=false yuv=false raw=false 351ms
+11-27 15:31:16.035  8984  8984 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:31:16.040  8984  8984 I AndroidRuntime: Using default boot image
+11-27 15:31:16.040  8984  8984 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:31:16.391  8984  8984 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:31:17.792  8984  8984 D AndroidRuntime: Shutting down VM
+11-27 15:31:19.053  1667  1753 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796398279-VID_20261127_153119_048.mp4. Uid: 10192
+11-27 15:31:20.604  7415  7452 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 428ms
+11-27 15:31:20.604  7415  7425 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onCaptureStarted(android.hardware.camera2.impl.CaptureResultExtras, long) for 345ms
+11-27 15:31:20.712  7415  7462 I LumenPerf: record HD 30fps codec=H.264 encoder=c2.android.avc.encoder bitrate=150Mb/s (encoder max 12)
+11-27 15:31:21.907  7415  7421 I pp.lumen.camera: Background concurrent copying GC freed 131064(4985KB) AllocSpace objects, 2(104KB) LOS objects, 49% free, 5265KB/10MB, paused 34us,7us total 137.383ms
+11-27 15:31:26.597  9162  9162 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:31:26.611  9162  9162 I AndroidRuntime: Using default boot image
+11-27 15:31:26.611  9162  9162 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:31:26.950  9162  9162 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:31:29.440  9162  9162 D AndroidRuntime: Shutting down VM
+11-27 15:31:30.844  1667  1753 D MediaProvider: Moving /storage/emulated/0/DCIM/Lumen/.pending-1796398279-VID_20261127_153119_048.mp4 to /storage/emulated/0/DCIM/Lumen/VID_20261127_153119_048.mp4
+11-27 15:31:31.053  1667  1753 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/VID_20261127_153119_048.mp4. Uid: 10192
+11-27 15:31:31.364  7415  7452 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 104ms
+11-27 15:31:31.366  7415  7462 I LumenPerf: session mode=VIDEO aspect=3:4 night=false yuv=false raw=false 106ms
+11-27 15:31:31.647  9344  9344 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:31:31.652  9344  9344 I AndroidRuntime: Using default boot image
+11-27 15:31:31.656  9344  9344 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:31:31.897  9344  9344 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:31:33.366  9344  9344 D AndroidRuntime: Shutting down VM
+11-27 15:31:34.804  7415  7773 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onResultReceived(android.hardware.camera2.impl.CameraMetadataNative, android.hardware.camera2.impl.CaptureResultExtras, android.hardware.camera2.impl.PhysicalCaptureResultInfo[]) for 347ms
+11-27 15:31:34.804  7415  7452 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 336ms
+11-27 15:31:34.807  7415  7462 I LumenPerf: session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 356ms
+11-27 15:31:37.686  9370  9370 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:31:37.718  9370  9370 I AndroidRuntime: Using default boot image
+11-27 15:31:37.718  9370  9370 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:31:38.001  9370  9370 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:31:39.306  9370  9370 D AndroidRuntime: Shutting down VM
+11-27 15:31:40.787  7415  7462 I LumenPerf: session mode=PHOTO aspect=3:4 night=true yuv=true raw=false 386ms
+11-27 15:31:45.077  9411  9411 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:31:45.087  9411  9411 I AndroidRuntime: Using default boot image
+11-27 15:31:45.087  9411  9411 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:31:45.447  9411  9411 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:31:46.758  9411  9411 D AndroidRuntime: Shutting down VM
+11-27 15:31:49.376  7415  7421 I pp.lumen.camera: Background concurrent copying GC freed 12841(563KB) AllocSpace objects, 0(0B) LOS objects, 43% free, 30MB/54MB, paused 19us,7us total 125.139ms
+11-27 15:31:53.749  1667  1753 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796398313-NIGHT_20261127_153153_603.jpg. Uid: 10192
+11-27 15:31:53.971  1667  1753 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796398313-NIGHT_20261127_153153_603.jpg. Uid: 10192
+11-27 15:31:53.975  1667  1753 D MediaProvider: Moving /storage/emulated/0/DCIM/Lumen/.pending-1796398313-NIGHT_20261127_153153_603.jpg to /storage/emulated/0/DCIM/Lumen/NIGHT_20261127_153153_603.jpg
+11-27 15:31:54.042  7415  7415 I LumenPerf: shot kind=night-merge shutter_free=1664ms saved=6063ms aspect=3:4
+11-27 15:31:55.811  9556  9556 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:31:55.816  9556  9556 I AndroidRuntime: Using default boot image
+11-27 15:31:55.817  9556  9556 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:31:56.187  9556  9556 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:31:57.904  9556  9556 D AndroidRuntime: Shutting down VM
+11-27 15:31:59.407  7415  7462 I LumenPerf: session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 404ms
+11-27 15:32:02.318  9582  9582 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:32:02.324  9582  9582 I AndroidRuntime: Using default boot image
+11-27 15:32:02.324  9582  9582 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:32:02.525  9582  9582 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:32:04.241  9582  9582 D AndroidRuntime: Shutting down VM
+11-27 15:32:07.575  9604  9604 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:32:07.595  9604  9604 I AndroidRuntime: Using default boot image
+11-27 15:32:07.595  9604  9604 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:32:07.846  9604  9604 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:32:09.529  9604  9604 D AndroidRuntime: Shutting down VM
+11-27 15:32:12.236  9627  9627 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:32:12.247  9627  9627 I AndroidRuntime: Using default boot image
+11-27 15:32:12.247  9627  9627 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:32:12.441  9627  9627 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:32:13.961  9627  9627 D AndroidRuntime: Shutting down VM
+11-27 15:32:16.303  9650  9650 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:32:16.309  9650  9650 I AndroidRuntime: Using default boot image
+11-27 15:32:16.309  9650  9650 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:32:16.576  9650  9650 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:32:18.091  9650  9650 D AndroidRuntime: Shutting down VM
+11-27 15:32:19.672  7415  7452 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 338ms
+11-27 15:32:19.675  7415  7462 I LumenPerf: session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 369ms
+11-27 15:32:25.223  9703  9703 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:32:25.244  9703  9703 I AndroidRuntime: Using default boot image
+11-27 15:32:25.245  9703  9703 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:32:25.640  9703  9703 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:32:27.136  9703  9703 D AndroidRuntime: Shutting down VM
+11-27 15:32:29.336  7415  7421 I pp.lumen.camera: Background young concurrent copying GC freed 154370(5847KB) AllocSpace objects, 2(104KB) LOS objects, 9% free, 49MB/54MB, paused 61us,9us total 113.322ms
+11-27 15:32:29.874  7415  7421 I pp.lumen.camera: Background concurrent copying GC freed 10604(510KB) AllocSpace objects, 24(29MB) LOS objects, 49% free, 24MB/48MB, paused 89us,12us total 503.834ms
+11-27 15:32:46.185  7415  7421 I pp.lumen.camera: NativeAlloc concurrent copying GC freed 18996(750KB) AllocSpace objects, 4(19MB) LOS objects, 49% free, 5216KB/10MB, paused 29us,10us total 660.468ms
+11-27 15:32:47.508  1667  1753 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796398367-LUMEN_20261127_153247_432.jpg. Uid: 10192
+11-27 15:32:47.553  1667  1753 I MediaProvider: Open with lower FS for /storage/emulated/0/DCIM/Lumen/.pending-1796398367-LUMEN_20261127_153247_432.jpg. Uid: 10192
+11-27 15:32:47.608  1667  1753 D MediaProvider: Moving /storage/emulated/0/DCIM/Lumen/.pending-1796398367-LUMEN_20261127_153247_432.jpg to /storage/emulated/0/DCIM/Lumen/LUMEN_20261127_153247_432.jpg
+11-27 15:32:47.758  7415  7415 I LumenPerf: shot kind=raw-burst shutter_free=1128ms saved=19525ms aspect=3:4
+11-27 15:32:48.123 10128 10128 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:32:48.128 10128 10128 I AndroidRuntime: Using default boot image
+11-27 15:32:48.129 10128 10128 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:32:48.446 10128 10128 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:32:50.011 10128 10128 D AndroidRuntime: Shutting down VM
+11-27 15:32:51.692  7415  7452 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 416ms
+11-27 15:32:51.692  7415  7427 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onCaptureStarted(android.hardware.camera2.impl.CaptureResultExtras, long) for 391ms
+11-27 15:32:51.694  7415  7462 I LumenPerf: session mode=PRO aspect=3:4 night=false yuv=false raw=true 459ms
+11-27 15:32:54.695 10237 10237 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:32:54.701 10237 10237 I AndroidRuntime: Using default boot image
+11-27 15:32:54.701 10237 10237 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:32:55.263 10237 10237 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:32:58.309 10237 10237 D AndroidRuntime: Shutting down VM
+11-27 15:33:01.614 10280 10280 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-27 15:33:01.622 10280 10280 I AndroidRuntime: Using default boot image
+11-27 15:33:01.625 10280 10280 I AndroidRuntime: Leaving lock profiling enabled
+11-27 15:33:02.135 10280 10280 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-27 15:33:03.508 10280 10280 D AndroidRuntime: Shutting down VM
+11-27 15:33:04.932  7415  7452 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=0 in void android.hardware.camera2.impl.CameraDeviceImpl$4.run() for 334ms
+11-27 15:33:04.932  7415  8550 W pp.lumen.camera: Long monitor contention with owner LumenControl (7462) at void android.hardware.camera2.impl.CameraDeviceImpl.waitUntilIdle()(CameraDeviceImpl.java:1387) waiters=1 in void android.hardware.camera2.impl.CameraDeviceImpl$CameraDeviceCallbacks.onResultReceived(android.hardware.camera2.impl.CameraMetadataNative, android.hardware.camera2.impl.CaptureResultExtras, android.hardware.camera2.impl.PhysicalCaptureResultInfo[]) for 326ms
+11-27 15:33:04.933  7415  7462 I LumenPerf: session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 352ms
