@@ -136,6 +136,8 @@ class CameraCaps(
         (try { map?.getOutputSizes(SurfaceTexture::class.java)?.toList() } catch (_: Exception) { null } ?: emptyList())
             .sortedByDescending { it.area() }
 
+    /** Processed YUV sizes (largest first): burst input on phones without RAW. */
+    val yuvSizes: List<Size> = sizes(map, ImageFormat.YUV_420_888).sortedByDescending { it.area() }
     val supportsRaw: Boolean = rawCapable && (rawSizes.isNotEmpty() || raw10Sizes.isNotEmpty())
 
     /** Equivalent 35mm focal length of the main focal length. */

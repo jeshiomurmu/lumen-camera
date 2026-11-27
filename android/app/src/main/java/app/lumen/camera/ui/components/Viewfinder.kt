@@ -144,8 +144,16 @@ fun ViewfinderOverlays(
     histogram: Boolean,
     analysis: FrameAnalysis?,
     modifier: Modifier,
+    frameGuide: Float = 0f,
+    safeArea: Int = 0,
+    landscape: Boolean = false,
+    audio: FloatArray? = null,
+    timecode: String? = null,
 ) {
     Box(modifier) {
+        analysis?.falseColor?.let {
+            Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
+        }
         analysis?.peaking?.let {
             Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
         }
@@ -162,6 +170,28 @@ fun ViewfinderOverlays(
                     drawLine(c, Offset(0f, h * i / 3), Offset(w, h * i / 3), 1f)
                 }
             }
+            // frame guide (e.g. 2.39:1) for the way the phone is held, with darkened outside
+            if (frameGuide > 0f) {
+                val vfLong = if (landscape) h else w
+                val vfShort = if (landscape) w else h
+                // guide is wider than tall in the recorded (held) orientation
+                var gl = vfLong
+                var gs = gl / frameGuide
+                if (gs > vfShort) { gs = vfShort; gl = gs * frameGuide }
+                val gw = if (landscape) gs else gl
+                val gh = if (landscape) gl else gs
+                val l = (w - gw) / 2; val t = (h - gh) / 2
+                val shade = Color.Black.copy(alpha = 0.55f)
+                drawRect(shade, Offset(0f, 0f), GSize(w, t))
+                drawRect(shade, Offset(0f, t + gh), GSize(w, h - t - gh))
+                drawRect(shade, Offset(0f, t), GSize(l, gh))
+                drawRect(shade, Offset(l + gw, t), GSize(w - l - gw, gh))
+                drawRect(Color.White.copy(alpha = 0.8f), Offset(l, t), GSize(gw, gh), style = Stroke(1.5f))
+            }
+            if (safeArea in 1..99) {
+                val f = safeArea / 100f
+                drawRect(LumenColors.Accent.copy(alpha = 0.8f), Offset(w * (1 - f) / 2, h * (1 - f) / 2), GSize(w * f, h * f), style = Stroke(1.5f))
+            }
             if (level && kotlin.math.abs(roll) < 30f) {
                 val ok = kotlin.math.abs(roll) < 1f
                 rotate(-roll, pivot = Offset(w / 2, h / 2)) {
@@ -174,6 +204,40 @@ fun ViewfinderOverlays(
         }
         if (histogram && analysis != null) {
             Histogram(analysis, Modifier.align(Alignment.TopEnd).padding(8.dp).size(112.dp, 56.dp))
+        }
+        if (audio != null) {
+            AudioMeters(audio, Modifier.align(Alignment.CenterStart).padding(6.dp).size(18.dp, 120.dp))
+        }
+        if (timecode != null) {
+            Text(
+                timecode, color = Color.White, fontSize = 13.sp,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                modifier = Modifier.align(Alignment.BottomStart).padding(8.dp)
+                    .background(Color(0x99000000), androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+            )
+        }
+    }
+}
+
+/** Two-channel peak meters, dBFS from -60 to 0 (green / yellow above -12 / red above -3). */
+@Composable
+fun AudioMeters(db: FloatArray, modifier: Modifier) {
+    Canvas(modifier.background(Color(0x88000000))) {
+        val bw = size.width / 2f
+        for (ch in 0 until minOf(2, db.size)) {
+            val f = ((db[ch] + 60f) / 60f).coerceIn(0f, 1f)
+            val hgt = f * size.height
+            val c = when {
+                db[ch] > -3f -> Color(0xFFFF3B30)
+                db[ch] > -12f -> Color(0xFFFFD60A)
+                else -> Color(0xFF34C759)
+            }
+            drawRect(c, Offset(ch * bw + 1f, size.height - hgt), GSize(bw - 2f, hgt))
+        }
+        for (mark in listOf(-12f, -3f)) {
+            val y = size.height * (1f - (mark + 60f) / 60f)
+            drawLine(Color.White.copy(alpha = 0.5f), Offset(0f, y), Offset(size.width, y), 1f)
         }
     }
 }

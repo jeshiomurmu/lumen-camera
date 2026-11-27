@@ -73,6 +73,8 @@ data class UiState(
     val zoomFactor: Float = 1f,
     val recording: Boolean = false,
     val recordSeconds: Int = 0,
+    val audioDb: FloatArray? = null,
+    val timecode: String? = null,
     val busy: Boolean = false,
     val busyText: String = "",
     val progress: Float = 0f,
@@ -104,7 +106,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _ui = MutableStateFlow(UiState())
     val ui: StateFlow<UiState> = _ui
-    private val _settings = MutableStateFlow(store.load())
+    private val _settings = MutableStateFlow(store.load()).also { engine.antibanding = it.value.antibanding }
     val settings: StateFlow<AppSettings> = _settings
     val live: StateFlow<LiveInfo> get() = engine.live
 
@@ -326,6 +328,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
         val new = f(old)
         _settings.value = new
         store.save(new)
+        engine.antibanding = new.antibanding
         val streamsChanged = old.maxResolution != new.maxResolution || old.saveRaw != new.saveRaw ||
             old.aspect != new.aspect || old.photoEngine != new.photoEngine || old.videoModeKey != new.videoModeKey ||
             old.tenBitHlg != new.tenBitHlg
@@ -337,9 +340,9 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
 
     fun onAnalysisFrame(bmp: Bitmap) {
         val s = _settings.value
-        if (!s.histogram && !s.focusPeaking && !s.zebras) return
+        if (!s.histogram && !s.focusPeaking && !s.zebras && !s.falseColor) return
         viewModelScope.launch(Dispatchers.Default) {
-            val a = FrameAnalysis.analyze(bmp, s.focusPeaking, s.zebras)
+            val a = FrameAnalysis.analyze(bmp, s.focusPeaking, s.zebras, s.falseColor)
             _ui.update { it.copy(analysis = a) }
         }
     }
@@ -405,7 +408,13 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
                             val jpegList = if (maxRes && c.maxResJpegSizes.isNotEmpty()) c.maxResJpegSizes else c.jpegSizes
                             val jpeg = jpegList.firstOrNull { abs(it.width.toFloat() / it.height - aspect) < 0.02f } ?: jpegList.firstOrNull()
                             val pv = choosePreview(c, aspect)
-                            engine.startPhotoSession(tex, pv, if (maxRes && rawSize != null) null else jpeg, rawSize, rawFmt, maxRes)
+                            // No RAW (e.g. Galaxy A): offer a processed YUV stream so Lumen can still merge bursts.
+                            val yuvCands = if (rawSize == null && st.photoEngine == PhotoEngine.LUMEN) {
+                                val same = c.yuvSizes.filter { abs(it.width.toFloat() / it.height - aspect) < 0.02f }
+                                (same.take(1) + same.filter { it.width * it.height <= 12_600_000 }.take(1) +
+                                    same.filter { it.width * it.height <= 8_000_000 }.take(1)).distinct()
+                            } else emptyList()
+                            engine.startPhotoSession(tex, pv, if (maxRes && rawSize != null) null else jpeg, rawSize, rawFmt, maxRes, yuvCands)
                             _ui.update { it.copy(previewSize = pv) }
                         }
                     }
@@ -467,6 +476,13 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
                         _ui.update { it.copy(busyText = text, progress = p) }
                     }
                 }
+                // Phones without RAW: merge a YUV burst in low light / Night / Pro, ISP JPEG in good light.
+                engine.yuvReader != null && (s.night || s.mode == Mode.PRO ||
+                    (st.photoEngine == PhotoEngine.LUMEN && engine.live.value.ev100 < 8f)) ->
+                    pipeline.yuvBurst(s.night, st, rot,
+                        s.controls.iso.takeIf { s.mode == Mode.PRO }, s.controls.shutterNs.takeIf { s.mode == Mode.PRO }) { text, p ->
+                        _ui.update { it.copy(busyText = text, progress = p) }
+                    }
                 else -> pipeline.ispJpeg(rot, st.jpegQuality)
             }
             _ui.update { it.copy(thumbnail = out.thumbnail ?: it.thumbnail, lastUri = out.uri ?: it.lastUri, astroPreview = null) }
@@ -504,22 +520,40 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
                         VideoRecorder.Config(
                             vm.size.width, vm.size.height, vm.fps, bitrate, enc.codec, enc.name, hlg,
                             st.logProfile && _ui.value.mode == Mode.PRO_VIDEO, st.cbr, audioOk,
+                            audioGainDb = st.audioGainDb.toFloat(),
                         ),
                         pfd.fileDescriptor, orientation.captureRotation(caps), caps.timestampRealtime,
                     )
                     val pv = if (vm.highSpeed) vm.size else _ui.value.previewSize
                     engine.startVideoSession(tex, pv, rec.inputSurface, vm, hlg)
-                    setControls(_ui.value.controls.copy(fps = vm.fps))
+                    // lock white balance for the take so colour doesn't drift mid-shot
+                    setControls(_ui.value.controls.copy(fps = vm.fps, awbLock = st.lockWbOnRecord && _ui.value.controls.wbKelvin == null))
                     rec.start()
                     recorder = rec
                     recordFd = pfd
                     recordUri = uri
                     _ui.update { it.copy(recording = true, recordSeconds = 0) }
                     toast("${enc.codec.label} · ${bitrate / 1_000_000} Mb/s" + if (hlg) " · 10-bit HLG" else "")
+                    val startMs = android.os.SystemClock.elapsedRealtime()
+                    val fps = vm.fps
                     recordJob = viewModelScope.launch {
                         while (isActive) {
-                            delay(1000)
-                            _ui.update { it.copy(recordSeconds = it.recordSeconds + 1) }
+                            delay(100)
+                            val el = android.os.SystemClock.elapsedRealtime() - startMs
+                            val tc = if (st.timecodeTod) {
+                                val c = java.util.Calendar.getInstance()
+                                timecode(c.get(java.util.Calendar.HOUR_OF_DAY), c.get(java.util.Calendar.MINUTE),
+                                    c.get(java.util.Calendar.SECOND), (c.get(java.util.Calendar.MILLISECOND) * fps / 1000))
+                            } else {
+                                val s = el / 1000
+                                timecode((s / 3600).toInt(), ((s / 60) % 60).toInt(), (s % 60).toInt(), ((el % 1000) * fps / 1000).toInt())
+                            }
+                            _ui.update {
+                                it.copy(
+                                    recordSeconds = (el / 1000).toInt(), timecode = tc,
+                                    audioDb = if (st.audioMeters && audioOk) rec.levelsDb else null,
+                                )
+                            }
                         }
                     }
                 } catch (e: Exception) {
@@ -530,6 +564,8 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+
+    private fun timecode(h: Int, m: Int, s: Int, f: Int) = "%02d:%02d:%02d:%02d".format(h, m, s, f)
 
     private fun autoBitrate(vm: VideoMode, codec: VideoCodec): Int {
         val bpp = when (codec) {
@@ -544,7 +580,8 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
         recordJob?.cancel()
         val rec = recorder ?: return
         recorder = null
-        _ui.update { it.copy(recording = false, busy = true, busyText = "Saving video") }
+        _ui.update { it.copy(recording = false, busy = true, busyText = "Saving video", audioDb = null, timecode = null) }
+        if (_ui.value.controls.awbLock) setControls(_ui.value.controls.copy(awbLock = false))
         viewModelScope.launch {
             opLock.withLock {
                 withContext(Dispatchers.IO) {

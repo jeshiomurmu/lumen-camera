@@ -75,6 +75,10 @@ class CameraEngine(context: Context) {
     var jpegReader: ImageReader? = null
         private set
     var rawReader: ImageReader? = null
+    /** Full-size processed frames for burst merging on phones without RAW. */
+    var yuvReader: ImageReader? = null
+    /** Flicker-free exposure: 0 = auto, 50 / 60 Hz mains. */
+    var antibanding: Int = 0
         private set
     var kind = SessionKind.NONE
         private set
@@ -121,6 +125,7 @@ class CameraEngine(context: Context) {
         extSession = null
         jpegReader?.close(); jpegReader = null
         rawReader?.close(); rawReader = null
+        yuvReader?.close(); yuvReader = null
         previewSurface?.release(); previewSurface = null
         recordSurface = null
         kind = SessionKind.NONE
@@ -160,7 +165,10 @@ class CameraEngine(context: Context) {
      * In ultra-high-resolution mode the still streams use the sensor's full
      * resolution (SENSOR_PIXEL_MODE_MAXIMUM_RESOLUTION, Android 12+).
      */
-    suspend fun startPhotoSession(texture: SurfaceTexture, preview: Size, jpeg: Size?, raw: Size?, rawFormat: Int, maxRes: Boolean) {
+    suspend fun startPhotoSession(
+        texture: SurfaceTexture, preview: Size, jpeg: Size?, raw: Size?, rawFormat: Int, maxRes: Boolean,
+        yuvCandidates: List<Size> = emptyList(),
+    ) {
         closeSession()
         maxResMode = maxRes && Build.VERSION.SDK_INT >= 31
         texture.setDefaultBufferSize(preview.width, preview.height)
@@ -173,6 +181,27 @@ class CameraEngine(context: Context) {
         if (raw != null) {
             rawReader = ImageReader.newInstance(raw.width, raw.height, rawFormat, 4)
             outs += OutputConfiguration(rawReader!!.surface).also { if (maxResMode) markMaxRes(it) }
+        }
+        if (raw == null && yuvCandidates.isNotEmpty()) {
+            // No RAW: try a processed YUV stream for burst merging, largest size the HAL accepts.
+            val base = outs.toList()
+            for (sz in yuvCandidates) {
+                val rd = ImageReader.newInstance(sz.width, sz.height, ImageFormat.YUV_420_888, 3)
+                val ok = try {
+                    session = createSession(SessionConfiguration.SESSION_REGULAR, base + OutputConfiguration(rd.surface))
+                    true
+                } catch (e: Exception) {
+                    Log.w(TAG, "YUV ${sz} stream refused: $e")
+                    rd.close()
+                    false
+                }
+                if (ok) {
+                    yuvReader = rd
+                    kind = SessionKind.PHOTO
+                    applyControls(controls)
+                    return
+                }
+            }
         }
         session = try {
             createSession(SessionConfiguration.SESSION_REGULAR, outs)
@@ -297,6 +326,11 @@ class CameraEngine(context: Context) {
 
     /** Fills a request from [Controls], respecting what the camera supports. */
     private fun fill(b: CaptureRequest.Builder, c: Controls, forPreview: Boolean, video: Boolean) {
+        b.set(CaptureRequest.CONTROL_AE_ANTIBANDING_MODE, when (antibanding) {
+            50 -> CameraMetadata.CONTROL_AE_ANTIBANDING_MODE_50HZ
+            60 -> CameraMetadata.CONTROL_AE_ANTIBANDING_MODE_60HZ
+            else -> CameraMetadata.CONTROL_AE_ANTIBANDING_MODE_AUTO
+        })
         val k = caps ?: return
         val last = lastResult
         applyZoom(b, c.zoomRatio)
@@ -625,6 +659,59 @@ class CameraEngine(context: Context) {
         }
         r.setOnImageAvailableListener(null, null)
         images.close()
+    }
+
+    /**
+     * Burst of processed YUV frames. With manual-sensor support the exposure is fixed;
+     * otherwise auto exposure is locked (shifted by [evSteps]) so every frame matches.
+     */
+    suspend fun captureYuvBurst(
+        count: Int, exposureNs: Long?, iso: Int?, evSteps: Int, onFrame: suspend (Shot) -> Unit,
+    ) {
+        val r = yuvReader ?: error("YUV stream not configured")
+        val s = session ?: error("no session")
+        val k = caps ?: error("camera closed")
+        val images = Channel<Image>(Channel.UNLIMITED)
+        val results = ConcurrentHashMap<Long, TotalCaptureResult>()
+        r.setOnImageAvailableListener({ rd -> rd.acquireNextImage()?.let { images.trySend(it) } }, imgHandler)
+        val manual = exposureNs != null && iso != null && k.manualSensor
+        if (!manual) {
+            // settle AE at the requested compensation, then lock it for the burst
+            val dev = device ?: error("camera closed")
+            val pre = dev.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+            previewSurface?.let { pre.addTarget(it) }
+            fill(pre, controls.copy(evSteps = evSteps), forPreview = true, video = false)
+            s.setRepeatingRequest(pre.build(), repeatingCallback, camHandler)
+            delay(if (evSteps != 0) 700 else 250)
+            pre.set(CaptureRequest.CONTROL_AE_LOCK, true)
+            pre.set(CaptureRequest.CONTROL_AWB_LOCK, true)
+            s.setRepeatingRequest(pre.build(), repeatingCallback, camHandler)
+            delay(150)
+        }
+        val reqs = (0 until count).map {
+            val b = stillBuilder(r.surface, true, 0, 95)
+            if (manual) lockExposure(b, exposureNs!!, iso!!) else {
+                b.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, evSteps)
+                b.set(CaptureRequest.CONTROL_AE_LOCK, true)
+                b.set(CaptureRequest.CONTROL_AWB_LOCK, true)
+            }
+            b.build()
+        }
+        try {
+            s.captureBurst(reqs, object : CameraCaptureSession.CaptureCallback() {
+                override fun onCaptureCompleted(cs: CameraCaptureSession, rq: CaptureRequest, tr: TotalCaptureResult) {
+                    tr.get(CaptureResult.SENSOR_TIMESTAMP)?.let { results[it] = tr }
+                }
+            }, camHandler)
+            repeat(count) {
+                val img = withTimeout(6_000L + (exposureNs ?: 0L) / 1_000_000L * 3) { images.receive() }
+                onFrame(Shot(img, results.remove(img.timestamp) ?: lastResult))
+            }
+        } finally {
+            r.setOnImageAvailableListener(null, null)
+            images.close()
+            if (!manual) applyControls(controls)   // unlock AE/AWB, restore preview
+        }
     }
 
     /** Capture through an OEM extension session; returns JPEG bytes. */

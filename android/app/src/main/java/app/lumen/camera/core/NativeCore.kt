@@ -88,6 +88,11 @@ object NativeCore {
     external fun colorResolve(color: FloatArray): FloatArray?
     external fun wbGainsForCct(color: FloatArray, kelvin: Float, tint: Float): FloatArray?
     external fun estimateCct(color: FloatArray): Float
+    /** YUV_420_888 planes -> linear RGGB uint16 mosaic (even width/height) for the burst merger. */
+    external fun yuvToMosaic(
+        y: ByteBuffer, u: ByteBuffer, v: ByteBuffer, width: Int, height: Int,
+        yRowStride: Int, uvRowStride: Int, uvPixelStride: Int, out: ByteBuffer,
+    ): Int
     external fun logEncode(x: Float): Float
     external fun writeLogLut(path: String): Int
 }

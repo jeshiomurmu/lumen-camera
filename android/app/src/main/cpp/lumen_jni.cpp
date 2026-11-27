@@ -346,3 +346,50 @@ JNIEXPORT jint JNICALL FN(writeLogLut)(JNIEnv* env, jobject, jstring path) {
 }
 
 }  // extern "C"
+
+// ---- YUV burst support (phones without RAW) ------------------------------------------------
+// Converts a YUV_420_888 frame (ISP output, full-range BT.601, sRGB-encoded) into a linear
+// RGGB uint16 mosaic so the same align + robust merge core can denoise it. Even W/H.
+#include <cmath>
+static uint16_t g_srgb_to_lin[256];
+static bool g_lut_ready = false;
+static void init_lut() {
+  if (g_lut_ready) return;
+  for (int i = 0; i < 256; i++) {
+    float v = i / 255.f;
+    float l = v <= 0.04045f ? v / 12.92f : std::pow((v + 0.055f) / 1.055f, 2.4f);
+    g_srgb_to_lin[i] = (uint16_t)std::lround(l * 65535.f);
+  }
+  g_lut_ready = true;
+}
+static inline int clamp255(int v) { return v < 0 ? 0 : (v > 255 ? 255 : v); }
+
+JNIEXPORT jint JNICALL FN(yuvToMosaic)(JNIEnv* env, jobject, jobject yb, jobject ub, jobject vb, jint w, jint h,
+                                       jint yStride, jint uvStride, jint uvPixStride, jobject outBuf) {
+  init_lut();
+  auto* Y = static_cast<const uint8_t*>(env->GetDirectBufferAddress(yb));
+  auto* U = static_cast<const uint8_t*>(env->GetDirectBufferAddress(ub));
+  auto* V = static_cast<const uint8_t*>(env->GetDirectBufferAddress(vb));
+  auto* out = static_cast<uint16_t*>(env->GetDirectBufferAddress(outBuf));
+  if (!Y || !U || !V || !out) return LUMEN_ERR_INVALID_ARG;
+  if (env->GetDirectBufferCapacity(outBuf) < (jlong)w * h * 2) return LUMEN_ERR_INVALID_ARG;
+  const int W = w & ~1, H = h & ~1;
+  for (int y = 0; y < H; y++) {
+    const uint8_t* yr = Y + (size_t)y * yStride;
+    const uint8_t* ur = U + (size_t)(y >> 1) * uvStride;
+    const uint8_t* vr = V + (size_t)(y >> 1) * uvStride;
+    uint16_t* o = out + (size_t)y * W;
+    for (int x = 0; x < W; x++) {
+      const int yy = yr[x];
+      const int cu = ur[(x >> 1) * uvPixStride] - 128;
+      const int cv = vr[(x >> 1) * uvPixStride] - 128;
+      int c;
+      if ((y & 1) == 0) c = (x & 1) == 0 ? clamp255(yy + ((91881 * cv) >> 16))                         // R
+                                         : clamp255(yy - ((22554 * cu + 46802 * cv) >> 16));           // G
+      else c = (x & 1) == 0 ? clamp255(yy - ((22554 * cu + 46802 * cv) >> 16))                         // G
+                            : clamp255(yy + ((116130 * cu) >> 16));                                     // B
+      o[x] = g_srgb_to_lin[c];
+    }
+  }
+  return LUMEN_OK;
+}

@@ -41,7 +41,12 @@ class VideoRecorder(
         val audio: Boolean,
         val audioBitrate: Int = 320_000,
         val audioDevice: AudioDeviceInfo? = null,
+        val audioGainDb: Float = 0f,
     )
+
+    /** Latest peak level per channel in dBFS (-90 = silence), for the on-screen meters. */
+    @Volatile var levelsDb: FloatArray = floatArrayOf(-90f, -90f)
+        private set
 
     private val muxer = MediaMuxer(fd, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4).apply {
         setOrientationHint(orientationHint)
@@ -191,6 +196,27 @@ class VideoRecorder(
         }
     }
 
+    /** Applies the input gain (with clipping) and measures per-channel peaks. */
+    private fun processAudio(buf: ByteBuffer, bytes: Int) {
+        val gain = Math.pow(10.0, config.audioGainDb / 20.0).toFloat()
+        val sb = buf.duplicate().order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        sb.position(0)
+        val samples = bytes / 2
+        var pl = 0
+        var pr = 0
+        for (i in 0 until samples) {
+            var v = sb.getShort(i * 2).toInt()
+            if (gain != 1f) {
+                v = (v * gain).toInt().coerceIn(-32768, 32767)
+                sb.putShort(i * 2, v.toShort())
+            }
+            val a = kotlin.math.abs(v)
+            if (i and 1 == 0) { if (a > pl) pl = a } else { if (a > pr) pr = a }
+        }
+        fun db(p: Int) = if (p <= 0) -90f else (20.0 * kotlin.math.log10(p / 32768.0)).toFloat()
+        levelsDb = floatArrayOf(db(pl), db(pr))
+    }
+
     private fun audioLoop() {
         val enc = audio ?: return
         val rec = record ?: return
@@ -213,6 +239,7 @@ class VideoRecorder(
                         eosQueued = true
                     } else {
                         val n = rec.read(ib, minOf(ib.capacity(), 8192))
+                        if (n > 0) processAudio(ib, n)
                         if (n > 0) {
                             if (startNs < 0) {
                                 startNs = if (rec.getTimestamp(ts, AudioTimestamp.TIMEBASE_MONOTONIC) == AudioRecord.SUCCESS) {

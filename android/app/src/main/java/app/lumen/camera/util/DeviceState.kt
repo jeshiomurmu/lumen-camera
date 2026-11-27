@@ -61,11 +61,26 @@ class FrameAnalysis(
     val rgbHist: Array<FloatArray>,
     val peaking: Bitmap?,
     val zebras: Bitmap?,
+    val falseColor: Bitmap? = null,
 ) {
     companion object {
         private const val BINS = 64
 
-        fun analyze(src: Bitmap, peaking: Boolean, zebras: Boolean): FrameAnalysis {
+        /** Exposure bands (percent of white, display referred), like cinema-camera false color. */
+        fun falseColorFor(y: Float): Int {
+            val p = y / 255f * 100f
+            return when {
+                p < 2.5f -> 0xFF7B2FBE.toInt()              // purple: crushed black
+                p < 10f -> 0xFF1E5BFF.toInt()               // blue: just above black
+                p in 38f..44f -> 0xFF39D353.toInt()         // green: 18% grey
+                p in 52f..56f -> 0xFFFF8FB1.toInt()         // pink: one stop over grey (skin)
+                p in 92f..98f -> 0xFFFFD60A.toInt()         // yellow: near clipping
+                p >= 98f -> 0xFFFF3B30.toInt()              // red: clipped
+                else -> { val g = (p / 100f * 160f + 40f).toInt(); (0xFF shl 24) or (g shl 16) or (g shl 8) or g }
+            }
+        }
+
+        fun analyze(src: Bitmap, peaking: Boolean, zebras: Boolean, falseColor: Boolean = false): FrameAnalysis {
             val w = src.width
             val h = src.height
             val px = IntArray(w * h)
@@ -118,7 +133,12 @@ class FrameAnalysis(
                 }
                 zeb = Bitmap.createBitmap(out, w, h, Bitmap.Config.ARGB_8888)
             }
-            return FrameAnalysis(lh, rh, peak, zeb)
+            var fc: Bitmap? = null
+            if (falseColor) {
+                val out = IntArray(w * h) { falseColorFor(luma[it]) }
+                fc = Bitmap.createBitmap(out, w, h, Bitmap.Config.ARGB_8888)
+            }
+            return FrameAnalysis(lh, rh, peak, zeb, fc)
         }
     }
 }

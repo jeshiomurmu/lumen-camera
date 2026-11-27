@@ -158,6 +158,26 @@ private fun SettingsContent(vm: CameraViewModel, ui: UiState, st: AppSettings) {
         SwitchRow("Constant bitrate", null, st.cbr) { v -> vm.updateSettings { it.copy(cbr = v) } }
         SwitchRow("Video stabilization", null, st.stabilization) { v -> vm.updateSettings { it.copy(stabilization = v) } }
         SwitchRow("Record audio", null, st.recordAudio) { v -> vm.updateSettings { it.copy(recordAudio = v) } }
+        OptionRow("Audio input gain", listOf(-12, -6, 0, 6, 12, 18).map { (if (it > 0) "+$it dB" else "$it dB") to it }, st.audioGainDb) { v ->
+            vm.updateSettings { it.copy(audioGainDb = v) }
+        }
+        SwitchRow("Audio meters", "Peak levels while recording", st.audioMeters) { v -> vm.updateSettings { it.copy(audioMeters = v) } }
+
+        Section("Cinema")
+        SwitchRow("Shutter angle (Pro Video)", "180° = 1/(2 × frame rate)", st.shutterAngle) { v -> vm.updateSettings { it.copy(shutterAngle = v) } }
+        OptionRow("Flicker-free", listOf("Auto" to 0, "50 Hz" to 50, "60 Hz" to 60), st.antibanding) { v -> vm.updateSettings { it.copy(antibanding = v) } }
+        OptionRow(
+            "Frame guide",
+            listOf("Off" to 0f, "9:16" to 9f / 16f, "4:5" to 0.8f, "1:1" to 1f, "4:3" to 4f / 3f, "14:9" to 14f / 9f, "1.85" to 1.85f,
+                "2:1" to 2f, "2.35" to 2.35f, "2.39" to 2.39f, "2.4" to 2.4f, "2.76" to 2.76f),
+            st.frameGuide,
+        ) { v -> vm.updateSettings { it.copy(frameGuide = v) } }
+        OptionRow("Safe area", listOf("Off" to 0, "80%" to 80, "90%" to 90, "93%" to 93), st.safeArea) { v -> vm.updateSettings { it.copy(safeArea = v) } }
+        SwitchRow("False color", "Purple crushed · green 18% grey · pink skin · red clipped", st.falseColor) { v ->
+            vm.updateSettings { it.copy(falseColor = v) }
+        }
+        OptionRow("Timecode", listOf("Record run" to false, "Time of day" to true), st.timecodeTod) { v -> vm.updateSettings { it.copy(timecodeTod = v) } }
+        SwitchRow("Lock white balance on record", null, st.lockWbOnRecord) { v -> vm.updateSettings { it.copy(lockWbOnRecord = v) } }
 
         Section("Astro (tripod)")
         OptionRow("Frames", listOf(10, 20, 30, 60, 100, 200).map { "$it" to it }, st.astroFrames) { v -> vm.updateSettings { it.copy(astroFrames = v) } }

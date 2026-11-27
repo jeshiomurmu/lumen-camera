@@ -52,6 +52,16 @@ data class AppSettings(
     val level: Boolean = true,
     val volumeShutter: Boolean = true,
     val timerSeconds: Int = 0,
+    // cinema tools
+    val shutterAngle: Boolean = true,     // video shutter shown as angle (180° = 1/(2·fps))
+    val antibanding: Int = 0,             // 0 auto, 50 or 60 Hz flicker-free
+    val frameGuide: Float = 0f,           // 0 off, else aspect ratio (e.g. 2.39)
+    val safeArea: Int = 0,                // 0 off, else % of the frame
+    val falseColor: Boolean = false,
+    val audioGainDb: Int = 0,
+    val audioMeters: Boolean = true,
+    val timecodeTod: Boolean = false,     // false: record run, true: time of day
+    val lockWbOnRecord: Boolean = true,
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("photoEngine", photoEngine.name); put("saveRaw", saveRaw); put("maxResolution", maxResolution)
@@ -65,6 +75,9 @@ data class AppSettings(
         put("astroStackMode", astroStackMode); put("astroAlign", astroAlign); put("astroDarkFrames", astroDarkFrames)
         put("grid", grid); put("histogram", histogram); put("focusPeaking", focusPeaking); put("zebras", zebras)
         put("level", level); put("volumeShutter", volumeShutter); put("timerSeconds", timerSeconds)
+        put("shutterAngle", shutterAngle); put("antibanding", antibanding); put("frameGuide", frameGuide.toDouble())
+        put("safeArea", safeArea); put("falseColor", falseColor); put("audioGainDb", audioGainDb)
+        put("audioMeters", audioMeters); put("timecodeTod", timecodeTod); put("lockWbOnRecord", lockWbOnRecord)
     }
 
     companion object {
@@ -104,6 +117,15 @@ data class AppSettings(
                 level = o.optBoolean("level", d.level),
                 volumeShutter = o.optBoolean("volumeShutter", d.volumeShutter),
                 timerSeconds = o.optInt("timerSeconds", d.timerSeconds),
+                shutterAngle = o.optBoolean("shutterAngle", d.shutterAngle),
+                antibanding = o.optInt("antibanding", d.antibanding),
+                frameGuide = o.optDouble("frameGuide", d.frameGuide.toDouble()).toFloat(),
+                safeArea = o.optInt("safeArea", d.safeArea),
+                falseColor = o.optBoolean("falseColor", d.falseColor),
+                audioGainDb = o.optInt("audioGainDb", d.audioGainDb),
+                audioMeters = o.optBoolean("audioMeters", d.audioMeters),
+                timecodeTod = o.optBoolean("timecodeTod", d.timecodeTod),
+                lockWbOnRecord = o.optBoolean("lockWbOnRecord", d.lockWbOnRecord),
             )
         }
     }

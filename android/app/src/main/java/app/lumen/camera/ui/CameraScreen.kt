@@ -1,6 +1,7 @@
 package app.lumen.camera.ui
 
 import android.content.Intent
+import kotlin.math.roundToInt
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -92,9 +93,16 @@ fun CameraScreen(vm: CameraViewModel) {
                         onTap = vm::tapFocus,
                         onPinch = vm::pinchZoom,
                         onAnalysisFrame = vm::onAnalysisFrame,
-                        analysisEnabled = st.histogram || st.focusPeaking || st.zebras,
+                        analysisEnabled = st.histogram || st.focusPeaking || st.zebras || st.falseColor,
                     )
-                    ViewfinderOverlays(st.grid, st.level, roll, st.histogram, ui.analysis, Modifier.fillMaxSize())
+                    ViewfinderOverlays(
+                        st.grid, st.level, roll, st.histogram, ui.analysis, Modifier.fillMaxSize(),
+                        frameGuide = if (ui.mode.isVideo || ui.mode.isPro) st.frameGuide else 0f,
+                        safeArea = if (ui.mode.isVideo) st.safeArea else 0,
+                        landscape = devDeg == 90 || devDeg == 270,
+                        audio = ui.audioDb,
+                        timecode = ui.timecode,
+                    )
                     ui.astroPreview?.let {
                         Image(it.asImageBitmap(), "Stacking preview", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     }
@@ -137,7 +145,8 @@ fun CameraScreen(vm: CameraViewModel) {
                     }
                 }
             }
-            if (ui.mode.isPro && caps != null) ProPanel(vm, ui.controls, caps, ui.proParam, live.kelvin)
+            if (ui.mode.isPro && caps != null) ProPanel(vm, ui.controls, caps, ui.proParam, live.kelvin,
+                angleFps = if (ui.mode == Mode.PRO_VIDEO && st.shutterAngle) ui.selectedVideo?.fps else null)
             Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.Center) {
                 ZoomBar(ui.zoomStops, ui.zoomFactor, iconRot) { vm.selectZoom(it) }
             }
@@ -190,9 +199,17 @@ private val SHUTTER_STOPS: List<Long> = listOf(24000, 16000, 12000, 8000, 6000, 
     listOf(0.3, 0.5, 0.8, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0, 15.0, 20.0, 30.0).map { (it * 1e9).toLong() }
 
 @Composable
-private fun ProPanel(vm: CameraViewModel, c: Controls, caps: CameraCaps, sel: ProParam?, liveK: Int) {
+private fun ProPanel(vm: CameraViewModel, c: Controls, caps: CameraCaps, sel: ProParam?, liveK: Int, angleFps: Int? = null) {
     val isoList = caps.isoRange?.let { r -> ISO_STOPS.filter { it in r.lower..r.upper } } ?: emptyList()
-    val shList = caps.exposureRange?.let { r -> SHUTTER_STOPS.filter { it in r.lower..r.upper } } ?: emptyList()
+    // Video: shutter angle (cinema convention); 180° = 1/(2·fps). Never longer than one frame.
+    val angles = listOf(11.25, 22.5, 45.0, 90.0, 144.0, 172.8, 180.0, 216.0, 270.0, 360.0)
+    val shList = if (angleFps != null) {
+        angles.map { (it / 360.0 / angleFps * 1e9).toLong() }.filter { ns -> caps.exposureRange?.let { ns in it.lower..it.upper } ?: false }
+    } else caps.exposureRange?.let { r -> SHUTTER_STOPS.filter { it in r.lower..r.upper } } ?: emptyList()
+    fun shutterLabel(ns: Long) = if (angleFps != null) {
+        val a = ns / 1e9 * angleFps * 360.0
+        if (kotlin.math.abs(a - a.roundToInt()) < 0.05) "${a.roundToInt()}°" else "%.1f°".format(a)
+    } else CameraCaps.formatShutter(ns)
     val step = caps.aeCompStep.toFloat()
     val evList = (caps.aeCompRange.lower..caps.aeCompRange.upper).toList()
     val focusSteps = 48
@@ -200,7 +217,7 @@ private fun ProPanel(vm: CameraViewModel, c: Controls, caps: CameraCaps, sel: Pr
     fun focusLabel(d: Float) = if (d <= 0.001f) "∞" else { val m = 1f / d; if (m >= 1f) "%.1fm".format(m) else "${(m * 100).roundToInt()}cm" }
     val values = listOf(
         ProValue(ProParam.ISO.label, c.iso?.toString() ?: "A", c.iso == null),
-        ProValue(ProParam.SHUTTER.label, c.shutterNs?.let { CameraCaps.formatShutter(it) } ?: "A", c.shutterNs == null),
+        ProValue(ProParam.SHUTTER.label, c.shutterNs?.let { shutterLabel(it) } ?: "A", c.shutterNs == null),
         ProValue(ProParam.EV.label, "%+.1f".format(c.evSteps * step), c.evSteps == 0),
         ProValue(ProParam.FOCUS.label, c.focusDiopters?.let { focusLabel(it) } ?: "AF", c.focusDiopters == null),
         ProValue(ProParam.WB.label, c.wbKelvin?.let { "${it}K" } ?: "AWB", c.wbKelvin == null),
@@ -227,7 +244,7 @@ private fun ProPanel(vm: CameraViewModel, c: Controls, caps: CameraCaps, sel: Pr
                 RulerDial(labels, idx) { i -> vm.setControls(c.copy(iso = if (i == 0) null else isoList[i - 1])) }
             } else Text("Manual ISO not supported on this camera", color = LumenColors.TextDim, modifier = Modifier.padding(8.dp))
             ProParam.SHUTTER -> if (shList.isNotEmpty() && caps.manualSensor) {
-                val labels = listOf("A") + shList.map { CameraCaps.formatShutter(it) }
+                val labels = listOf("A") + shList.map { shutterLabel(it) }
                 val idx = c.shutterNs?.let { v -> 1 + shList.indexOfFirst { it >= v }.coerceAtLeast(0) } ?: 0
                 RulerDial(labels, idx) { i -> vm.setControls(c.copy(shutterNs = if (i == 0) null else shList[i - 1])) }
             } else Text("Manual shutter not supported on this camera", color = LumenColors.TextDim, modifier = Modifier.padding(8.dp))
