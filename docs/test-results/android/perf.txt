@@ -1,0 +1,31 @@
+--------- beginning of main
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 374ms
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 584ms
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 300ms
+shot kind=isp shutter_free=563ms saved=940ms aspect=3:4
+shot kind=isp shutter_free=300ms saved=704ms aspect=3:4
+shot kind=isp shutter_free=268ms saved=414ms aspect=3:4
+shot kind=isp shutter_free=300ms saved=616ms aspect=3:4
+shot kind=isp shutter_free=361ms saved=361ms aspect=3:4
+shot kind=isp shutter_free=328ms saved=999ms aspect=3:4
+shot kind=isp shutter_free=338ms saved=656ms aspect=3:4
+shot kind=isp shutter_free=343ms saved=673ms aspect=3:4
+shot kind=isp shutter_free=366ms saved=504ms aspect=3:4
+session mode=PHOTO aspect=9:16 night=false yuv=false raw=false 317ms
+shot kind=isp shutter_free=374ms saved=410ms aspect=9:16
+session mode=PHOTO aspect=1:1 night=false yuv=false raw=false 283ms
+shot kind=isp shutter_free=295ms saved=406ms aspect=1:1
+session mode=PHOTO aspect=Full night=false yuv=false raw=false 349ms
+shot kind=isp shutter_free=324ms saved=477ms aspect=Full
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 336ms
+session mode=VIDEO aspect=3:4 night=false yuv=false raw=false 314ms
+record HD 30fps codec=H.264 encoder=c2.android.avc.encoder bitrate=150Mb/s (encoder max 12)
+session mode=VIDEO aspect=3:4 night=false yuv=false raw=false 121ms
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 323ms
+session mode=PHOTO aspect=3:4 night=true yuv=true raw=false 333ms
+shot kind=night-merge shutter_free=1665ms saved=3454ms aspect=3:4
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 337ms
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 310ms
+shot kind=raw-burst shutter_free=744ms saved=10233ms aspect=3:4
+session mode=PRO aspect=3:4 night=false yuv=false raw=true 310ms
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 329ms

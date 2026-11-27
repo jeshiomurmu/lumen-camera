@@ -5,7 +5,7 @@ Lumen core 1.0.0 tests (output: /Users/runner/work/lumen-camera/lumen-camera/sim
 [alignment]
   textured tiles with exact offset: 95.5% (462/484)
 [burst merge, low light, handheld sub-pixel shake]
-  merged 8 frames, ref=0, mean motion 4.85 px, 161 ms
+  merged 8 frames, ref=0, mean motion 4.85 px, 134 ms
   PSNR single 31.64 dB -> merged 37.04 dB (+5.40 dB)
   + spatial denoise 0.5: 37.77 dB
 [ghosting]
@@ -30,9 +30,9 @@ Lumen core 1.0.0 tests (output: /Users/runner/work/lumen-camera/lumen-camera/sim
 [yuv merge]
   luma 32.56 -> 39.70 dB (+7.14), chroma 40.10 -> 48.84 dB, sigma est 6.81 (true 6.0), used 91%
   moving object region (must stay like the reference): 32.56 dB single, 32.02 dB merged
-  FAIL core/tests/test_core.cpp:899: ghosting: 32.02 vs 32.56 dB
-  12MP x 8 frames: 204 ms/frame align+merge, render 114 ms
+  ghost pixels (> 6 sigma) in the moving region: 0 of 10000
+  12MP x 8 frames: 149 ms/frame align+merge, render 148 ms
 [performance 12MP]
-  3 threads: add+align+merge 4 frames 3080 ms (770 ms/frame), finalize 355 ms, render 1405 ms
+  3 threads: add+align+merge 4 frames 2453 ms (613 ms/frame), finalize 324 ms, render 1834 ms
 
-101 checks passed, 1 failed
+103 checks passed, 0 failed

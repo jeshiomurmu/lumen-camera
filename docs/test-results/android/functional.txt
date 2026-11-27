@@ -1,16 +1,28 @@
-launch: 1821 ms cold start
+launch: 1743 ms cold start
 resume: ok
-photo: tap -> saved 30479 ms (includes adb polling, 250 ms steps)
-rapid shots: 1/5 saved in 49049 ms (taps 300 ms apart)
-aspect 3:4: saved 1856x1392 (exif orientation 6) long/short 1.333 in 6961 ms
-aspect 9:16: saved 1856x1392 (exif orientation 6) long/short 1.333 in 3052 ms
-aspect 1:1: saved 1856x1392 (exif orientation 6) long/short 1.333 in 79 ms
-aspect Full: saved 1392x1392 (exif orientation 6) long/short 1.000 in 60 ms
+photo 1: shot kind=isp shutter_free=563ms saved=940ms aspect=3:4
+photo 2: shot kind=isp shutter_free=300ms saved=704ms aspect=3:4
+photo 3: shot kind=isp shutter_free=268ms saved=414ms aspect=3:4
+rapid shots: 5/5 saved within 3504 ms of the first tap (taps 300 ms apart)
+  shot kind=isp shutter_free=300ms saved=616ms aspect=3:4
+  shot kind=isp shutter_free=361ms saved=361ms aspect=3:4
+  shot kind=isp shutter_free=328ms saved=999ms aspect=3:4
+  shot kind=isp shutter_free=338ms saved=656ms aspect=3:4
+  shot kind=isp shutter_free=343ms saved=673ms aspect=3:4
+aspect 3:4: saved 1856x1392 (exif orientation 6), long/short 1.333 · shot kind=isp shutter_free=366ms saved=504ms aspect=3:4
+aspect 9:16: saved 1280x720 (exif orientation 6), long/short 1.778 · shot kind=isp shutter_free=374ms saved=410ms aspect=9:16
+aspect 1:1: saved 1392x1392 (exif orientation 6), long/short 1.000 · shot kind=isp shutter_free=295ms saved=406ms aspect=1:1
+aspect Full: saved 1280x576 (exif orientation 6), long/short 2.222 · shot kind=isp shutter_free=324ms saved=477ms aspect=Full
 frame rates offered (this camera): 15 fps, 24 fps, 25 fps, 30 fps
 bitrate: 150 Mb/s selected
-video: codec_name=h264 width=1280 height=720 avg_frame_rate=9855000/473909 bit_rate=277516 
-video file: 768735 bytes
-night: tap -> merged photo saved timeout ms
-frames: 5801 rendered, janky 5610 (96.71%)
-frame time: 50th 57ms, 90th 89ms, 99th 133ms
+video: codec_name=h264 width=1280 height=720 avg_frame_rate=6150000/253139 bit_rate=314196 
+video file: 667626 bytes
+video request: record HD 30fps codec=H.264 encoder=c2.android.avc.encoder bitrate=150Mb/s (encoder max 12)
+night (multi-frame merge of the phone's frames): shot kind=night-merge shutter_free=1665ms saved=3454ms aspect=3:4
+night file: NIGHT_20261127_151058_714.jpg
+lumen raw merge: shot kind=raw-burst shutter_free=744ms saved=10233ms aspect=3:4
+frames: 5406 rendered, janky 4788 (88.57%)
+frame time: 50th 34ms, 90th 61ms, 99th 101ms
+ui thread blocked by camera calls: 0 times
+session rebuilds: 15, slowest 584ms
 crashes: 0
