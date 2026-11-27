@@ -36,23 +36,25 @@ Every push runs the core test suite and the real apps on an **Android emulator**
 
 ### Camera app (Android 14 emulator, API 34, x86_64, 2 cores)
 
+Ranges cover the last three runs; shared CI machines vary up to 3× in speed between runs.
+
 | Test | Result |
 |---|---|
-| Cold launch | 1.7 s, no crashes |
+| Cold launch | 1.7 – 2.2 s, no crashes |
 | Leave the app and come back | camera reopens |
-| Photo, phone processing: shutter free again | **0.27 – 0.56 s** after the tap (file written in the background) |
-| Photo, phone processing: file saved | 0.41 – 0.94 s after the tap |
-| 5 taps, 300 ms apart | **5 / 5 photos saved** within 3.5 s |
+| Photo, phone processing: shutter free again | **0.27 – 0.62 s** after the tap (file written in the background) |
+| Photo, phone processing: file saved | 0.41 – 1.5 s after the tap |
+| 5 taps, 300 ms apart | **5 / 5 photos saved** within 3.0 – 3.8 s |
 | Aspect 3:4 | saved 1856×1392 → 1.333 ✅ |
 | Aspect 9:16 | saved 1280×720 → 1.778 ✅ |
 | Aspect 1:1 | saved 1392×1392 → 1.000 ✅ |
 | Aspect Full | saved 1280×576 → 2.222 = screen ratio ✅ |
-| Night (merge of 8 phone frames) | shutter free 1.7 s, saved 3.5 s |
-| Lumen RAW merge | shutter free 0.74 s, saved 10.2 s (merging on the emulator's 2 cores) |
+| Night (merge of 8 phone frames) | shutter free 1.7 – 2.1 s, saved 3.5 – 9.8 s |
+| Lumen RAW merge | shutter free 0.74 – 1.26 s, saved 10 – 32 s (merging on the emulator's 2 cores) |
 | Settings → Video → Bitrate 150 Mb/s | selectable ✅; frame rates listed = every rate the camera offers |
 | Video recording | file saved, playable (H.264 1280×720) |
 | Camera calls blocking the UI thread | **0** (was several per run before 1.0.14) |
-| UI frame time, 50th / 90th percentile | **34 / 61 ms** (was 57 / 89 ms) on software-rendered emulator graphics |
+| UI frame time, 50th / 90th percentile | 34 / 61 to 65 / 105 ms across runs (57 / 89 ms before), software-rendered graphics: too noisy to judge smoothness |
 
 ### Imaging core (same C++ on both platforms)
 
