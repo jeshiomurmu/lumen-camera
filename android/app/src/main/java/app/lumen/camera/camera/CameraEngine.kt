@@ -77,9 +77,9 @@ class CameraEngine(context: Context) {
     var rawReader: ImageReader? = null
     /** Full-size processed frames for burst merging on phones without RAW. */
     var yuvReader: ImageReader? = null
+        private set
     /** Flicker-free exposure: 0 = auto, 50 / 60 Hz mains. */
     var antibanding: Int = 0
-        private set
     var kind = SessionKind.NONE
         private set
     private var maxResMode = false
