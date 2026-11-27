@@ -89,6 +89,7 @@ set_engine() {   # $1 = option label in Settings > Photo > Processing
 
 # 2) install + launch the real APK
 adb install -r -g app.apk 2>&1 | tail -1 | tee "$R/install.txt"
+adb logcat -G 16M > /dev/null 2>&1 || true
 adb logcat -c
 adb shell am start -W -n app.lumen.camera/.MainActivity | tr -d '\r' | tee "$R/launch.txt"
 sleep 10
