@@ -139,6 +139,7 @@ private fun OutlineLabel(text: String, on: Boolean, rotation: () -> Float) {
     val c = if (on) LumenColors.Accent else Color.White
     Box(
         Modifier.graphicsLayer { rotationZ = rotation() }
+            .border(3.dp, Color.Black.copy(alpha = 0.35f), RoundedCornerShape(6.dp)).padding(0.75.dp)
             .border(1.5.dp, c, RoundedCornerShape(5.dp)).padding(horizontal = 5.dp, vertical = 1.dp),
     ) {
         Text(text, style = overlayStyle(11.sp, FontWeight.Bold, c))
@@ -180,7 +181,8 @@ fun ZoomBar(stops: List<ZoomStop>, factor: Float, rotation: () -> Float, onSelec
             } else s.label
             Box(
                 Modifier.size(40.dp).clip(CircleShape)
-                    .then(if (sel) Modifier.border(1.5.dp, LumenColors.Accent, CircleShape) else Modifier)
+                    .then(if (sel) Modifier.border(3.dp, Color.Black.copy(alpha = 0.3f), CircleShape).padding(0.75.dp)
+                        .border(1.5.dp, LumenColors.Accent, CircleShape) else Modifier)
                     .clickable { onSelect(s) }
                     .semantics { contentDescription = "Zoom ${s.label}" },
                 contentAlignment = Alignment.Center,

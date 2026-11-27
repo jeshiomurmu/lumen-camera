@@ -32,34 +32,49 @@ Every hardware capability is reached through **public platform APIs only**, at t
 
 ## Test results
 
-Every push runs the core test suite and the real apps on an **Android emulator** and an **iOS Simulator** in GitHub Actions ([device-tests.yml](.github/workflows/device-tests.yml)). Raw logs, screenshots and the captured photo are in [`docs/test-results/`](docs/test-results), which the workflow updates after each run.
+Every push runs the core test suite and the real apps on an **Android emulator** and an **iOS Simulator** in GitHub Actions ([device-tests.yml](.github/workflows/device-tests.yml)). The Android test drives the actual UI through its accessibility labels (shutter, aspect ratio, settings, modes) and reads the app's own timing log. Raw logs, screenshots and the captured files are in [`docs/test-results/`](docs/test-results), which the workflow updates after each run.
 
-Run on commit `503e4ac`, 27 Nov 2026:
+### Camera app (Android 14 emulator, API 34, x86_64, 2 cores)
 
-| | Android | iOS |
+| Test | Result |
+|---|---|
+| Cold launch | 1.7 s, no crashes |
+| Leave the app and come back | camera reopens |
+| Photo, phone processing: shutter free again | **0.27 – 0.56 s** after the tap (file written in the background) |
+| Photo, phone processing: file saved | 0.41 – 0.94 s after the tap |
+| 5 taps, 300 ms apart | **5 / 5 photos saved** within 3.5 s |
+| Aspect 3:4 | saved 1856×1392 → 1.333 ✅ |
+| Aspect 9:16 | saved 1280×720 → 1.778 ✅ |
+| Aspect 1:1 | saved 1392×1392 → 1.000 ✅ |
+| Aspect Full | saved 1280×576 → 2.222 = screen ratio ✅ |
+| Night (merge of 8 phone frames) | shutter free 1.7 s, saved 3.5 s |
+| Lumen RAW merge | shutter free 0.74 s, saved 10.2 s (merging on the emulator's 2 cores) |
+| Settings → Video → Bitrate 150 Mb/s | selectable ✅; frame rates listed = every rate the camera offers |
+| Video recording | file saved, playable (H.264 1280×720) |
+| Camera calls blocking the UI thread | **0** (was several per run before 1.0.14) |
+| UI frame time, 50th / 90th percentile | **34 / 61 ms** (was 57 / 89 ms) on software-rendered emulator graphics |
+
+### Imaging core (same C++ on both platforms)
+
+| | Android emulator | iPhone 17 Pro Max Simulator, iOS 26.5 |
 |---|---|---|
-| Device | Android 14 emulator (API 34, x86_64, 2 cores) | iPhone 17 Pro Max Simulator, iOS 26.5 (Apple M1 host, arm64) |
-| Core test suite | **83 / 83 passed** | **83 / 83 passed** |
-| 8-frame low-light burst (handheld shake) | 31.64 → **37.04 dB** PSNR (+5.40 dB) | 31.64 → **37.04 dB** (+5.40 dB) |
-| Ghosting (moving object) | error 0.0071 vs 0.0546 naive average | identical |
-| Astro: star registration | rotation 0.663° found vs 0.660° true, 0.017 px error | identical |
-| Astro: sky noise after stacking | 3.76× lower, 60/60 hot pixels removed | identical |
-| 12 MP merge speed | 1.80 s / frame (emulator, 2 threads) | 0.60 s / frame (3 threads) |
-| App install + cold launch | ✅ 2.3 s, no crashes | ✅ launches, no crash reports |
-| Leave the app and return | ✅ camera reopens | — |
-| Shutter → photo saved to DCIM/Lumen | ✅ (emulated camera scene) | — (no camera in the Simulator) |
+| Core test suite | **103 / 103 passed** | **103 / 103 passed** |
+| Night merge of phone (YUV) frames, 8 frames, handheld shift | luma +7.1 dB, colour noise +8.7 dB, 0 ghost pixels | identical |
+| 8-frame RAW burst (handheld shake) | 31.64 → 37.04 dB PSNR (+5.40 dB) | identical |
+| Astro star registration | 0.663° found vs 0.660° true | identical |
+| 12 MP night merge speed | 419 ms / frame (2 cores) | 149 ms / frame |
 
 <p>
-<img src="docs/test-results/android/after-resume.png" width="200" alt="Android emulator: live preview with histogram">
-<img src="docs/test-results/android/photo.jpg" width="200" alt="Photo captured on the Android emulator">
-<img src="docs/test-results/ios/launch.png" width="200" alt="iOS Simulator: camera UI">
+<img src="docs/test-results/android/aspect-3x4.png" width="160" alt="3:4 framing">
+<img src="docs/test-results/android/aspect-Full.png" width="160" alt="Full-screen framing">
+<img src="docs/test-results/android/pro.png" width="160" alt="Pro mode">
+<img src="docs/test-results/android/settings.png" width="160" alt="Settings">
+<img src="docs/test-results/android/settings-video.png" width="160" alt="Video settings">
 </p>
 
-*Android preview with live histogram · photo the emulator saved · the iOS interface (the Simulator has no camera, so its viewfinder is black).*
+*3:4 · Full · Pro · Settings · Video settings, from the emulator run (its camera shows a synthetic scene).*
 
-**What these tests do not cover yet:** emulators and simulators have no real image sensor. The emulator's camera is a synthetic scene and offers no RAW, so the Lumen burst on real RAW, Night, Astro, ProRAW, Log/ProRes video and the AI models have not been run on a physical phone. The algorithms behind them are covered by the core tests above. Results from real phones are very welcome: please open a [device report](https://github.com/jeshiomurmu/lumen-camera/issues/new?template=device-report.yml).
-
-The emulator test also caught a real bug: after leaving and returning to the app, the Android camera stayed closed. It is fixed in 1.0.8.
+**What these tests cannot show:** an emulator has no real sensor, lens or hardware video encoder. Its software H.264 encoder tops out at 12 Mb/s and its scene barely moves, so the video bitrate and frame rate it measures say nothing about a real phone. Frame times come from software-rendered graphics and are much slower than on a phone. Real-world photos (landscapes, night, video) from real phones are very welcome: please open a [device report](https://github.com/jeshiomurmu/lumen-camera/issues/new?template=device-report.yml).
 
 ## Repository layout
 

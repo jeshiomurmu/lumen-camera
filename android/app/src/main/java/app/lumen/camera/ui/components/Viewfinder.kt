@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as GSize
 import androidx.compose.ui.graphics.Color
@@ -49,7 +50,7 @@ import kotlinx.coroutines.delay
 import kotlin.math.abs
 
 /** Soft drop shadow that keeps white type readable over any scene without a dark backing. */
-val OverlayShadow = Shadow(Color.Black.copy(alpha = 0.75f), Offset(0f, 1.5f), 6f)
+val OverlayShadow = Shadow(Color.Black.copy(alpha = 0.95f), Offset(0f, 0.5f), 10f)
 
 fun overlayStyle(size: TextUnit, weight: FontWeight = FontWeight.Medium, color: Color = Color.White) =
     TextStyle(color = color, fontSize = size, fontWeight = weight, shadow = OverlayShadow)
@@ -334,9 +335,12 @@ fun ShadowIcon(
     modifier: Modifier = Modifier,
     rotation: () -> Float = { 0f },
 ) {
-    Box(modifier.graphicsLayer { rotationZ = rotation() }) {
-        androidx.compose.material3.Icon(icon, null, tint = Color.Black.copy(alpha = 0.45f),
-            modifier = Modifier.size(24.dp).graphicsLayer { translationY = 1.5.dp.toPx() })
+    Box(modifier.graphicsLayer { rotationZ = rotation() }, contentAlignment = Alignment.Center) {
+        // blurred dark halo (Android 12+) plus a slightly larger dark copy, so the glyph reads on white sky
+        androidx.compose.material3.Icon(icon, null, tint = Color.Black.copy(alpha = 0.55f),
+            modifier = Modifier.size(27.dp).blur(3.dp, androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded))
+        androidx.compose.material3.Icon(icon, null, tint = Color.Black.copy(alpha = 0.35f),
+            modifier = Modifier.size(25.dp).graphicsLayer { translationY = 0.5.dp.toPx() })
         androidx.compose.material3.Icon(icon, desc, tint = tint, modifier = Modifier.size(24.dp))
     }
 }
