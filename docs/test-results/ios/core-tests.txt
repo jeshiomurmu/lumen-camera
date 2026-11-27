@@ -1,0 +1,33 @@
+Lumen core 1.0.0 tests (output: /Users/runner/work/lumen-camera/lumen-camera/sim-out)
+[fft]
+[noise estimation]
+  S=0.000996 (true 0.000800) O=1.00e-10 (true 2.00e-06) sigma@0.2 est 0.01411 true 0.01273
+[alignment]
+  textured tiles with exact offset: 95.5% (462/484)
+[burst merge, low light, handheld sub-pixel shake]
+  merged 8 frames, ref=0, mean motion 4.85 px, 228 ms
+  PSNR single 31.64 dB -> merged 37.04 dB (+5.40 dB)
+  + spatial denoise 0.5: 37.77 dB
+[ghosting]
+  ghost error: robust merge 0.0071 vs naive average 0.0546
+[color]
+  T=2900K gains=(1.367, 1, 2.113) -> estimated 2900K
+  T=4300K gains=(1.799, 1, 1.669) -> estimated 4300K
+  T=6500K gains=(2.206, 1, 1.385) -> estimated 6500K
+  T=8000K gains=(2.378, 1, 1.258) -> estimated 8000K
+  red (0.6,0.1,0.1) -> (0.576, 0.100, 0.094)
+[finish neutral]
+  grey -> (110, 111, 110)
+[dng]
+[astro]
+  frame 1: stars 150 matched 147 rot 0.060 deg (true 0.060) rms 0.168 px err 0.010 px
+  frame 11: stars 150 matched 146 rot 0.663 deg (true 0.660) rms 0.162 px err 0.017 px
+  background noise: single 0.00541 -> stacked 0.00144 (x3.76 better)
+  hot pixels suppressed: 60/60
+  mean value along satellite trail: 0.0552 (background ~0.05)
+[log curve, quad bayer, raw10]
+  log(0.18) = 0.574
+[performance 12MP]
+  3 threads: add+align+merge 4 frames 3471 ms (868 ms/frame), finalize 446 ms, render 2099 ms
+
+83 checks passed, 0 failed

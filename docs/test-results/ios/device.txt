@@ -1,0 +1,2 @@
+device: iPhone 17 Pro Max Simulator · iOS 26.5
+host: Apple M1 (Virtual) · cpus: 3 · Xcode 26.6

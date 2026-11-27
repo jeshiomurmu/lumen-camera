@@ -1,0 +1,9 @@
+Starting: Intent { cmp=app.lumen.camera/.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: app.lumen.camera/.MainActivity
+TotalTime: 1831
+WaitTime: 1902
+Complete
+running after launch: yes (pid 6692)6692
+running after capture: yes6692
