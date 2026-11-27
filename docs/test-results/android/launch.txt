@@ -2,9 +2,8 @@ Starting: Intent { cmp=app.lumen.camera/.MainActivity }
 Status: ok
 LaunchState: COLD
 Activity: app.lumen.camera/.MainActivity
-TotalTime: 1808
-WaitTime: 1817
+TotalTime: 1821
+WaitTime: 1864
 Complete
-running after launch: yes (pid 6658)
-capture time: 44 s (includes up to 3 s polling)
-running after capture: yes
+running after launch: yes (pid 6963)
+running at the end: yes

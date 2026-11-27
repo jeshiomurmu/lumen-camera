@@ -1,0 +1,16 @@
+launch: 1821 ms cold start
+resume: ok
+photo: tap -> saved 30479 ms (includes adb polling, 250 ms steps)
+rapid shots: 1/5 saved in 49049 ms (taps 300 ms apart)
+aspect 3:4: saved 1856x1392 (exif orientation 6) long/short 1.333 in 6961 ms
+aspect 9:16: saved 1856x1392 (exif orientation 6) long/short 1.333 in 3052 ms
+aspect 1:1: saved 1856x1392 (exif orientation 6) long/short 1.333 in 79 ms
+aspect Full: saved 1392x1392 (exif orientation 6) long/short 1.000 in 60 ms
+frame rates offered (this camera): 15 fps, 24 fps, 25 fps, 30 fps
+bitrate: 150 Mb/s selected
+video: codec_name=h264 width=1280 height=720 avg_frame_rate=9855000/473909 bit_rate=277516 
+video file: 768735 bytes
+night: tap -> merged photo saved timeout ms
+frames: 5801 rendered, janky 5610 (96.71%)
+frame time: 50th 57ms, 90th 89ms, 99th 133ms
+crashes: 0
