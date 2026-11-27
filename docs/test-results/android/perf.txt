@@ -1,31 +1,32 @@
 --------- beginning of main
-session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 281ms
-session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 722ms
-session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 357ms
-shot kind=isp shutter_free=594ms saved=1178ms aspect=3:4
-shot kind=isp shutter_free=365ms saved=902ms aspect=3:4
-shot kind=isp shutter_free=383ms saved=645ms aspect=3:4
-shot kind=isp shutter_free=333ms saved=520ms aspect=3:4
-shot kind=isp shutter_free=474ms saved=1015ms aspect=3:4
-shot kind=isp shutter_free=400ms saved=629ms aspect=3:4
-shot kind=isp shutter_free=466ms saved=725ms aspect=3:4
-shot kind=isp shutter_free=426ms saved=649ms aspect=3:4
-shot kind=isp shutter_free=432ms saved=562ms aspect=3:4
-session mode=PHOTO aspect=9:16 night=false yuv=false raw=false 343ms
-shot kind=isp shutter_free=448ms saved=570ms aspect=9:16
-session mode=PHOTO aspect=1:1 night=false yuv=false raw=false 390ms
-shot kind=isp shutter_free=300ms saved=470ms aspect=1:1
-session mode=PHOTO aspect=Full night=false yuv=false raw=false 376ms
-shot kind=isp shutter_free=319ms saved=615ms aspect=Full
-session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 489ms
-session mode=VIDEO aspect=3:4 night=false yuv=false raw=false 351ms
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 303ms
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 328ms
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 677ms
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 353ms
+shot kind=isp shutter_free=529ms saved=1097ms aspect=3:4
+shot kind=isp shutter_free=444ms saved=1153ms aspect=3:4
+shot kind=isp shutter_free=469ms saved=984ms aspect=3:4
+shot kind=isp shutter_free=539ms saved=764ms aspect=3:4
+shot kind=isp shutter_free=484ms saved=714ms aspect=3:4
+shot kind=isp shutter_free=699ms saved=1033ms aspect=3:4
+shot kind=isp shutter_free=735ms saved=735ms aspect=3:4
+shot kind=isp shutter_free=579ms saved=653ms aspect=3:4
+shot kind=isp shutter_free=505ms saved=1356ms aspect=3:4
+session mode=PHOTO aspect=9:16 night=false yuv=false raw=false 405ms
+shot kind=isp shutter_free=520ms saved=1483ms aspect=9:16
+session mode=PHOTO aspect=1:1 night=false yuv=false raw=false 514ms
+shot kind=isp shutter_free=615ms saved=1298ms aspect=1:1
+session mode=PHOTO aspect=Full night=false yuv=false raw=false 465ms
+shot kind=isp shutter_free=454ms saved=1004ms aspect=Full
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 485ms
+session mode=VIDEO aspect=3:4 night=false yuv=false raw=false 409ms
 record HD 30fps codec=H.264 encoder=c2.android.avc.encoder bitrate=150Mb/s (encoder max 12)
-session mode=VIDEO aspect=3:4 night=false yuv=false raw=false 106ms
-session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 356ms
-session mode=PHOTO aspect=3:4 night=true yuv=true raw=false 386ms
-shot kind=night-merge shutter_free=1664ms saved=6063ms aspect=3:4
-session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 404ms
-session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 369ms
-shot kind=raw-burst shutter_free=1128ms saved=19525ms aspect=3:4
-session mode=PRO aspect=3:4 night=false yuv=false raw=true 459ms
-session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 352ms
+session mode=VIDEO aspect=3:4 night=false yuv=false raw=false 132ms
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 425ms
+session mode=PHOTO aspect=3:4 night=true yuv=true raw=false 339ms
+shot kind=night-merge shutter_free=2126ms saved=9774ms aspect=3:4
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=false 469ms
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 401ms
+shot kind=raw-burst shutter_free=1261ms saved=32259ms aspect=3:4
+session mode=PRO aspect=3:4 night=false yuv=false raw=true 480ms
+session mode=PHOTO aspect=3:4 night=false yuv=false raw=true 368ms
