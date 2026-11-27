@@ -208,6 +208,20 @@ def export(model, args_example, path, input_names, output_names, dynamic_axes):
     return path
 
 
+def export_coreml(module, examples, path, input_names, output_name):
+    """Core ML ML Program (fp16, Neural Engine friendly) for the iOS app. Needs coremltools."""
+    import coremltools as ct
+    with torch.no_grad():
+        traced = torch.jit.trace(module.eval(), examples)
+    inputs = [ct.TensorType(name=n, shape=tuple(e.shape)) for n, e in zip(input_names, examples)]
+    ml = ct.convert(traced, inputs=inputs, outputs=[ct.TensorType(name=output_name)],
+                    convert_to="mlprogram", minimum_deployment_target=ct.target.iOS17,
+                    compute_precision=ct.precision.FLOAT16)
+    ml.short_description = "Lumen Camera " + output_name
+    ml.save(path)
+    print("wrote", path)
+
+
 def op_types(path):
     import onnx
     return sorted({n.op_type for n in onnx.load(path).graph.node})
@@ -273,6 +287,7 @@ def main():
     ap.add_argument("--out", default="models")
     ap.add_argument("--cache", default=os.path.join(os.path.expanduser("~"), ".cache", "lumen"))
     ap.add_argument("--random-weights", action="store_true", help="skip downloads (CI / offline test)")
+    ap.add_argument("--coreml", action="store_true", help="also write .mlpackage models for iOS (needs coremltools)")
     ap.add_argument("--dynamic", action="store_true", help="variable-size graphs (desktop); the apps need the default fixed tiles")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
@@ -296,6 +311,9 @@ def main():
     else:
         export(FFDNetExport(den, DT, DT).eval(), (torch.rand(1, 3, DT, DT), torch.full((1, 1, 1, 1), 0.05)),
                p_den, ["image", "sigma"], ["denoised"], None)
+        if args.coreml:
+            export_coreml(FFDNetExport(den, DT, DT), (torch.rand(1, 3, DT, DT), torch.full((1, 1, 1, 1), 0.05)),
+                          os.path.join(args.out, "lumen_denoise.mlpackage"), ["image", "sigma"], "denoised")
     print("denoise ops:", op_types(p_den))
     sess = ort.InferenceSession(p_den, providers=["CPUExecutionProvider"])
     x = torch.rand(1, 3, DT, DT)
@@ -339,6 +357,9 @@ def main():
                {"image": {2: "h", 3: "w"}, "upscaled": {2: "h4", 3: "w4"}})
     else:
         export(SRExport(sr).eval(), (torch.rand(1, 3, ST, ST),), p_sr, ["image"], ["upscaled"], None)
+        if args.coreml:
+            export_coreml(SRExport(sr), (torch.rand(1, 3, ST, ST),),
+                          os.path.join(args.out, "lumen_sr_x4.mlpackage"), ["image"], "upscaled")
     print("sr_x4 ops:", op_types(p_sr))
     sess2 = ort.InferenceSession(p_sr, providers=["CPUExecutionProvider"])
     x = torch.rand(1, 3, ST, ST)

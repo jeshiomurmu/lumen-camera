@@ -34,13 +34,18 @@ jobs:
       - if: steps.cache.outputs.cache-hit != 'true'
         name: Export FFDNet + Real-ESRGAN
         run: |
-          pip install --index-url https://download.pytorch.org/whl/cpu torch
-          pip install onnx onnxruntime numpy
-          python tools/export_models.py --out models
+          pip install --index-url https://download.pytorch.org/whl/cpu torch==2.7.0
+          pip install onnx onnxruntime numpy coremltools==9.0
+          python tools/export_models.py --coreml --out models
       - uses: actions/upload-artifact@v4
         with:
           name: models
           path: models/*.onnx
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: models-coreml
+          path: models/*.mlpackage
           if-no-files-found: error
 
   android:
@@ -98,14 +103,17 @@ jobs:
       - uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: models
-          path: ios/LumenCamera/Resources/Models
+          name: models-coreml
+          path: coreml
       - name: Tools
         run: |
           brew install xcodegen
           xcodebuild -version
-          git config --global --list | grep -iE "url|extraheader|credential" || true
-          GIT_TERMINAL_PROMPT=0 git ls-remote --tags https://github.com/microsoft/onnxruntime-swift-package-manager.git | tail -3
+      - name: Compile Core ML models
+        run: |
+          shopt -s nullglob
+          for m in coreml/*.mlpackage; do xcrun coremlcompiler compile "$m" ios/LumenCamera/Resources/Models/; done
+          ls -la ios/LumenCamera/Resources/Models
       - name: Generate Xcode project
         working-directory: ios
         run: xcodegen generate
@@ -115,7 +123,6 @@ jobs:
           set -o pipefail
           xcodebuild -project LumenCamera.xcodeproj -scheme LumenCamera -configuration Release \
             -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
-            -skipPackagePluginValidation -skipMacroValidation -scmProvider system \
             CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" MARKETING_VERSION="1.0.${GITHUB_RUN_NUMBER}" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build | tee build.log | grep -E "error:|warning: .*deprecated|BUILD (SUCCEEDED|FAILED)" || true

@@ -14,7 +14,7 @@ Every hardware capability is reached through **public platform APIs only**, at t
 | **Astro** (tripod) | Star detection → triangle matching → RANSAC → sigma-clip / median / mean / star-trail stack · dark frames · hot pixels · gradient removal · auto-stretch | same core |
 | **Pro (manual)** | ISO, shutter (up to the sensor maximum), EV, manual focus, Kelvin WB + tint, presets · Android 16 shutter/ISO priority | ISO, shutter, EV, lens position, Kelvin WB + tint, presets · Camera Control sliders (ISO, focus, zoom, EV) |
 | **RAW** | DNG 1.4 (merged bursts: 16-bit, cleaner than one frame) | Original Apple DNG / ProRAW + Lumen-merged DNG |
-| **AI** (open source) | FFDNet denoise, Real-ESRGAN ×4 "AI zoom" via ONNX Runtime + NNAPI | same models via ONNX Runtime + Core ML (Neural Engine) |
+| **AI** (open source) | FFDNet denoise, Real-ESRGAN ×4 "AI zoom" via ONNX Runtime + NNAPI | same models converted to Core ML (Neural Engine) |
 | **Video** | HEVC / AVC / AV1 / APV (Samsung's pro codec, Android 16) · bitrate up to the encoder maximum · 10-bit HLG · Lumen Log + `.cube` LUT · open gate 4:3 · 120/240 fps high speed | HEVC / H.264 / ProRes 422 HQ / ProRes RAW (iPhone 17 Pro, iOS 26) · bitrate control where iOS allows it · HLG · Apple Log / Apple Log 2 · open gate · strongest stabilization mode |
 | **Audio** | AAC 48 kHz stereo, external mics | AAC or 24-bit PCM, external USB-C / Bluetooth mics |
 | **Viewfinder** | RGB + luma histogram, focus peaking, zebras, level, grid | + luma waveform |
@@ -69,7 +69,7 @@ cd ios && xcodegen            # generates LumenCamera.xcodeproj
 open LumenCamera.xcodeproj    # set your Team under Signing, run on an iPhone
 ```
 
-You need **Xcode 26** (iOS 26 SDK). The app runs on iOS 17+; features that need a newer iOS are guarded at runtime. ONNX Runtime is fetched by Swift Package Manager.
+You need **Xcode 26** (iOS 26 SDK). The app runs on iOS 17+; features that need a newer iOS are guarded at runtime. For AI on iOS, run the export with `--coreml` and compile the models into `ios/LumenCamera/Resources/Models/` with `xcrun coremlcompiler compile <model>.mlpackage ios/LumenCamera/Resources/Models/`.
 
 ## What was verified, and what needs your hardware
 
