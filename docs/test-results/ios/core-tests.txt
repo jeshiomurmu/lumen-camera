@@ -5,7 +5,7 @@ Lumen core 1.0.0 tests (output: /Users/runner/work/lumen-camera/lumen-camera/sim
 [alignment]
   textured tiles with exact offset: 95.5% (462/484)
 [burst merge, low light, handheld sub-pixel shake]
-  merged 8 frames, ref=0, mean motion 4.85 px, 228 ms
+  merged 8 frames, ref=0, mean motion 4.85 px, 115 ms
   PSNR single 31.64 dB -> merged 37.04 dB (+5.40 dB)
   + spatial denoise 0.5: 37.77 dB
 [ghosting]
@@ -28,6 +28,6 @@ Lumen core 1.0.0 tests (output: /Users/runner/work/lumen-camera/lumen-camera/sim
 [log curve, quad bayer, raw10]
   log(0.18) = 0.574
 [performance 12MP]
-  3 threads: add+align+merge 4 frames 3471 ms (868 ms/frame), finalize 446 ms, render 2099 ms
+  3 threads: add+align+merge 4 frames 2404 ms (601 ms/frame), finalize 435 ms, render 1495 ms
 
 83 checks passed, 0 failed
