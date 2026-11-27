@@ -57,6 +57,73 @@ object MediaSaver {
         return uri
     }
 
+    /** Centred crop rectangle with the given long/short side ratio (1 = square). */
+    fun cropRect(w: Int, h: Int, longOverShort: Float): android.graphics.Rect {
+        val long = maxOf(w, h)
+        val short = minOf(w, h)
+        var nl = long
+        var ns = (long / longOverShort).toInt()
+        if (ns > short) { ns = short; nl = (short * longOverShort).toInt().coerceAtMost(long) }
+        val cw = if (w >= h) nl else ns
+        val ch = if (w >= h) ns else nl
+        val l = ((w - cw) / 2) and 1.inv()
+        val t = ((h - ch) / 2) and 1.inv()
+        return android.graphics.Rect(l, t, l + (cw and 1.inv()), t + (ch and 1.inv()))
+    }
+
+    /**
+     * Crops an ISP JPEG (1:1 or full-screen framing) without decoding the parts that are thrown
+     * away, and carries over the camera's EXIF (orientation, exposure, lens, date).
+     */
+    fun saveJpegCropped(context: Context, bytes: ByteArray, name: String, longOverShort: Float, quality: Int): Uri {
+        val dec = if (android.os.Build.VERSION.SDK_INT >= 31) android.graphics.BitmapRegionDecoder.newInstance(bytes, 0, bytes.size)
+        else @Suppress("DEPRECATION") android.graphics.BitmapRegionDecoder.newInstance(bytes, 0, bytes.size, false)
+        val rect = cropRect(dec.width, dec.height, longOverShort)
+        val bmp = dec.decodeRegion(rect, null)
+        dec.recycle()
+        val uri = insert(context, "$name.jpg", "image/jpeg", false)
+        context.contentResolver.openOutputStream(uri)!!.use { bmp.compress(Bitmap.CompressFormat.JPEG, quality, it) }
+        bmp.recycle()
+        try {
+            val src = ExifInterface(java.io.ByteArrayInputStream(bytes))
+            context.contentResolver.openFileDescriptor(uri, "rw")!!.use { pfd ->
+                val e = ExifInterface(pfd.fileDescriptor)
+                for (tag in COPY_TAGS) src.getAttribute(tag)?.let { e.setAttribute(tag, it) }
+                e.saveAttributes()
+            }
+        } catch (_: Exception) {}
+        publish(context, uri)
+        return uri
+    }
+
+    private val COPY_TAGS = listOf(
+        ExifInterface.TAG_ORIENTATION, ExifInterface.TAG_MAKE, ExifInterface.TAG_MODEL, ExifInterface.TAG_DATETIME,
+        ExifInterface.TAG_DATETIME_ORIGINAL, ExifInterface.TAG_DATETIME_DIGITIZED, ExifInterface.TAG_EXPOSURE_TIME,
+        ExifInterface.TAG_F_NUMBER, ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY, ExifInterface.TAG_FOCAL_LENGTH,
+        ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM, ExifInterface.TAG_WHITE_BALANCE, ExifInterface.TAG_FLASH,
+        ExifInterface.TAG_EXPOSURE_BIAS_VALUE, ExifInterface.TAG_SUBSEC_TIME_ORIGINAL, ExifInterface.TAG_OFFSET_TIME_ORIGINAL,
+    )
+
+    /** Small upright thumbnail of a JPEG (EXIF orientation applied, crop applied). */
+    fun thumbnailFromJpeg(bytes: ByteArray, longOverShort: Float?): Bitmap? = try {
+        val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        var sample = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= 256) sample *= 2
+        var b = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size,
+            android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
+        if (longOverShort != null && b != null) {
+            val r = cropRect(b.width, b.height, longOverShort)
+            b = Bitmap.createBitmap(b, r.left, r.top, r.width(), r.height())
+        }
+        val deg = ExifInterface(java.io.ByteArrayInputStream(bytes)).rotationDegrees
+        if (b != null && deg != 0) {
+            val m = android.graphics.Matrix().apply { postRotate(deg.toFloat()) }
+            b = Bitmap.createBitmap(b, 0, 0, b.width, b.height, m, true)
+        }
+        b
+    } catch (_: Exception) { null }
+
     /** Encodes a processed bitmap and writes EXIF (orientation instead of rotating pixels). */
     fun saveBitmap(context: Context, bmp: Bitmap, name: String, quality: Int, exif: Exif): Uri {
         val uri = insert(context, "$name.jpg", "image/jpeg", false)

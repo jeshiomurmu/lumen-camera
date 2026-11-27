@@ -598,7 +598,13 @@ class CameraEngine(context: Context) {
     suspend fun captureJpeg(orientation: Int, quality: Int): Shot {
         val r = jpegReader ?: error("JPEG stream not configured")
         precaptureIfFlash()
-        return captureOne(r, stillBuilder(r.surface, true, orientation, quality), 10_000)
+        val b = stillBuilder(r.surface, true, orientation, quality)
+        // Zero shutter lag: let the HAL use the frame already in its ring buffer (no AF/AE wait).
+        if (!controls.manualExposure && controls.flash != FlashMode.ON && controls.flash != FlashMode.AUTO) {
+            b.set(CaptureRequest.CONTROL_ENABLE_ZSL, true)
+        }
+        b.set(CaptureRequest.CONTROL_CAPTURE_INTENT, CameraMetadata.CONTROL_CAPTURE_INTENT_STILL_CAPTURE)
+        return captureOne(r, b, 10_000)
     }
 
     /** One RAW frame with the current (or the given manual) exposure. */
@@ -682,7 +688,7 @@ class CameraEngine(context: Context) {
             previewSurface?.let { pre.addTarget(it) }
             fill(pre, controls.copy(evSteps = evSteps), forPreview = true, video = false)
             s.setRepeatingRequest(pre.build(), repeatingCallback, camHandler)
-            delay(if (evSteps != 0) 700 else 250)
+            delay(if (evSteps != 0) 550 else 200)
             pre.set(CaptureRequest.CONTROL_AE_LOCK, true)
             pre.set(CaptureRequest.CONTROL_AWB_LOCK, true)
             s.setRepeatingRequest(pre.build(), repeatingCallback, camHandler)

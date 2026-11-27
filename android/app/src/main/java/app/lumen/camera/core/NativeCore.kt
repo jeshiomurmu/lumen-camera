@@ -88,11 +88,12 @@ object NativeCore {
     external fun colorResolve(color: FloatArray): FloatArray?
     external fun wbGainsForCct(color: FloatArray, kelvin: Float, tint: Float): FloatArray?
     external fun estimateCct(color: FloatArray): Float
-    /** YUV_420_888 planes -> linear RGGB uint16 mosaic (even width/height) for the burst merger. */
-    external fun yuvToMosaic(
-        y: ByteBuffer, u: ByteBuffer, v: ByteBuffer, width: Int, height: Int,
-        yRowStride: Int, uvRowStride: Int, uvPixelStride: Int, out: ByteBuffer,
-    ): Int
+    /** Multi-frame merge of ISP YUV_420_888 frames (phones without RAW). First frame = reference. */
+    external fun yuvMergeCreate(width: Int, height: Int, strength: Float): Long
+    external fun yuvMergeAdd(handle: Long, y: ByteBuffer, u: ByteBuffer, v: ByteBuffer, yRowStride: Int, uvRowStride: Int, uvPixelStride: Int): Int
+    /** Returns [frames, noiseSigma, meanWeight] or null. */
+    external fun yuvMergeRender(handle: Long, out: Bitmap): FloatArray?
+    external fun yuvMergeDestroy(handle: Long)
     external fun logEncode(x: Float): Float
     external fun writeLogLut(path: String): Int
 }

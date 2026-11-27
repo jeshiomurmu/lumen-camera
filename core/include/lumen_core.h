@@ -255,6 +255,30 @@ int32_t lumen_dng_read_info(const uint8_t* bytes, size_t len, LumenDngInfo* out)
 /* Decodes uncompressed 8/10/12/14/16-bit CFA data into out (width*height). */
 int32_t lumen_dng_read_pixels(const uint8_t* bytes, size_t len, uint16_t* out);
 
+/* ---- YUV burst merge (phones without RAW) ---------------------------- */
+/* Aligns and averages processed YUV 4:2:0 frames from the device ISP. The
+ * first frame added is the reference (what the user saw at the shutter).
+ * Colour and tone stay the ISP's; only temporal noise is removed. Areas that
+ * move between frames fall back to the reference (no ghosts). */
+typedef struct LumenYuvMerge LumenYuvMerge;
+typedef struct {
+  int32_t frames;          /* frames added, including the reference */
+  float noise_sigma;       /* measured luma noise, 8-bit levels */
+  float mean_weight;       /* 0..1, how much of the non-reference frames was used */
+  int32_t last_global_dx;  /* global shift of the last frame, pixels */
+  int32_t last_global_dy;
+} LumenYuvMergeStats;
+
+/* strength: 1 = default; higher accepts larger differences (more denoising). */
+LumenYuvMerge* lumen_yuv_merge_create(int32_t width, int32_t height, float strength);
+int32_t lumen_yuv_merge_add(LumenYuvMerge* m, const uint8_t* y, int32_t y_row_stride,
+                            const uint8_t* u, const uint8_t* v, int32_t uv_row_stride,
+                            int32_t uv_pixel_stride);
+/* Full-range BT.601 to 8-bit RGBA (width & ~1) x (height & ~1). */
+int32_t lumen_yuv_merge_render(LumenYuvMerge* m, uint8_t* rgba, int32_t rgba_stride,
+                               LumenYuvMergeStats* stats);
+void lumen_yuv_merge_destroy(LumenYuvMerge* m);
+
 /* ---- misc -------------------------------------------------------------- */
 /* Lumen Log curve used for Log video (Android TONEMAP_CURVE). */
 float lumen_log_encode(float linear);

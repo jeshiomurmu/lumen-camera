@@ -21,13 +21,13 @@ data class AppSettings(
     val maxResolution: Boolean = false,
     val burstFrames: Int = 0,            // 0 = automatic
     val profile: Int = NativeCore.PROFILE_NATURAL,
-    val aiDenoise: Boolean = true,
-    val aiZoom: Boolean = true,
+    val aiDenoise: Boolean = false,      // off: photos keep real texture; opt-in in settings
+    val aiZoom: Boolean = false,
     val jpegQuality: Int = 97,
     val displayP3: Boolean = false,
     val ispNoiseReduction: Int = -1,     // -1 = camera default, else CaptureRequest NR mode
     val ispSharpening: Int = -1,         // -1 = camera default, else EDGE mode
-    val aspect: Float = 4f / 3f,
+    val aspect: Float = 4f / 3f,         // 4/3, 16/9, 1 (square) or 0 (full screen)
     // video
     val videoModeKey: String = "",       // "WxH@fps[h]"
     val videoCodec: VideoCodec = VideoCodec.HEVC,
@@ -46,7 +46,7 @@ data class AppSettings(
     val astroDarkFrames: Int = 0,
     // overlays & misc
     val grid: Boolean = true,
-    val histogram: Boolean = true,
+    val histogram: Boolean = false,
     val focusPeaking: Boolean = false,
     val zebras: Boolean = false,
     val level: Boolean = true,
@@ -64,6 +64,7 @@ data class AppSettings(
     val lockWbOnRecord: Boolean = true,
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
+        put("schema", SCHEMA)
         put("photoEngine", photoEngine.name); put("saveRaw", saveRaw); put("maxResolution", maxResolution)
         put("burstFrames", burstFrames); put("profile", profile); put("aiDenoise", aiDenoise); put("aiZoom", aiZoom)
         put("jpegQuality", jpegQuality); put("displayP3", displayP3); put("ispNR", ispNoiseReduction)
@@ -81,8 +82,14 @@ data class AppSettings(
     }
 
     companion object {
+        /** Bumped when defaults change in a way old saved settings should not override. */
+        const val SCHEMA = 2
+
         fun fromJson(o: JSONObject): AppSettings {
             val d = AppSettings()
+            // v1 turned AI denoise / AI zoom / histogram on by default: drop those saved values
+            val old = o.optInt("schema", 1) < SCHEMA
+            if (old) { o.remove("aiDenoise"); o.remove("aiZoom"); o.remove("histogram") }
             return AppSettings(
                 photoEngine = runCatching { PhotoEngine.valueOf(o.optString("photoEngine")) }.getOrDefault(d.photoEngine),
                 saveRaw = o.optBoolean("saveRaw", d.saveRaw),

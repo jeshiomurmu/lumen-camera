@@ -789,6 +789,136 @@ static void diag_merge() {
   }
 }
 
+
+// ---------------------------------------------------------------------------
+// YUV burst merge (non-RAW phones): shifted noisy ISP-like frames + a moving object.
+static float yuv_scene(int ch, double x, double y) {
+  if (ch == 0) {  // luma: gradient + fine texture + hard edges, kept inside 40..215
+    double v = 70 + 60 * (x / 640.0) + 25 * std::sin(x * 0.21) * std::cos(y * 0.17);
+    v += 30.0 * (hashf(int(std::floor(x / 3)), int(std::floor(y / 3))) - 0.5);  // texture
+    if (int(std::floor(x / 40)) % 2 == int(std::floor(y / 40)) % 2) v += 35;    // checker edges
+    return float(std::clamp(v, 40.0, 215.0));
+  }
+  double c = ch == 1 ? 128 + 20 * std::sin(x * 0.01) : 128 + 18 * std::cos(y * 0.012);
+  return float(c);
+}
+
+static void test_yuv_merge(bool perf) {
+  std::printf("[yuv merge]\n");
+  const int W = 640, H = 480, N = 8;
+  const float sy = 6.f, sc = 4.f;
+  std::mt19937 rng(7);
+  std::normal_distribution<float> nd(0, 1);
+  std::uniform_int_distribution<int> sh(-24, 24);
+  auto u8 = [](float v) { return uint8_t(clampf(std::round(v), 0, 255)); };
+  struct F { std::vector<uint8_t> y, u, v; };
+  std::vector<F> fr(N);
+  // moving square: absent from the reference (frame 0), present elsewhere in frames 1..N-1
+  for (int k = 0; k < N; ++k) {
+    int dx = k == 0 ? 0 : sh(rng), dy = k == 0 ? 0 : sh(rng);
+    F& f = fr[k];
+    f.y.resize(size_t(W) * H);
+    f.u.resize(size_t(W / 2) * (H / 2));
+    f.v.resize(f.u.size());
+    for (int y = 0; y < H; ++y)
+      for (int x = 0; x < W; ++x) {
+        float val = yuv_scene(0, x + dx, y + dy);
+        bool obj = k > 0 && x >= 420 && x < 520 && y >= 300 && y < 400;  // object in image coords
+        if (obj) val = 230;
+        f.y[size_t(y) * W + x] = u8(val + sy * nd(rng));
+      }
+    for (int y = 0; y < H / 2; ++y)
+      for (int x = 0; x < W / 2; ++x) {
+        bool obj = k > 0 && 2 * x >= 420 && 2 * x < 520 && 2 * y >= 300 && 2 * y < 400;
+        f.u[size_t(y) * (W / 2) + x] = u8((obj ? 90.f : yuv_scene(1, 2 * x + 0.5 + dx, 2 * y + 0.5 + dy)) + sc * nd(rng));
+        f.v[size_t(y) * (W / 2) + x] = u8((obj ? 170.f : yuv_scene(2, 2 * x + 0.5 + dx, 2 * y + 0.5 + dy)) + sc * nd(rng));
+      }
+  }
+  auto run = [&](int count, std::vector<uint8_t>& rgba, LumenYuvMergeStats& st) {
+    LumenYuvMerge* m = lumen_yuv_merge_create(W, H, 1.f);
+    CHECK(m != nullptr, "create");
+    for (int k = 0; k < count; ++k) {
+      // NV21-style interleaved chroma to exercise pixel stride 2
+      std::vector<uint8_t> vu(size_t(W) * (H / 2));
+      for (size_t i = 0; i < fr[k].u.size(); ++i) { vu[2 * i] = fr[k].v[i]; vu[2 * i + 1] = fr[k].u[i]; }
+      int rc = lumen_yuv_merge_add(m, fr[k].y.data(), W, vu.data() + 1, vu.data(), W, 2);
+      CHECK(rc == LUMEN_OK, "add %d", rc);
+    }
+    rgba.assign(size_t(W) * H * 4, 0);
+    CHECK(lumen_yuv_merge_render(m, rgba.data(), W * 4, &st) == LUMEN_OK, "render");
+    lumen_yuv_merge_destroy(m);
+  };
+  auto psnrY = [&](const std::vector<uint8_t>& rgba, bool objRegion) {
+    double se = 0; size_t n = 0;
+    for (int y = 8; y < H - 8; ++y)
+      for (int x = 8; x < W - 8; ++x) {
+        bool in = x >= 420 && x < 520 && y >= 300 && y < 400;
+        if (in != objRegion) continue;
+        const uint8_t* p = rgba.data() + (size_t(y) * W + x) * 4;
+        double Y = 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2];
+        double d = Y - yuv_scene(0, x, y);
+        se += d * d; ++n;
+      }
+    return 10 * std::log10(255.0 * 255.0 / (se / n));
+  };
+  auto psnrC = [&](const std::vector<uint8_t>& rgba) {
+    double se = 0; size_t n = 0;
+    for (int y = 8; y < H - 8; ++y)
+      for (int x = 8; x < W - 8; ++x) {
+        if (x >= 400 && x < 540 && y >= 280 && y < 420) continue;
+        const uint8_t* p = rgba.data() + (size_t(y) * W + x) * 4;
+        double U = -0.168736 * p[0] - 0.331264 * p[1] + 0.5 * p[2] + 128;
+        double d = U - yuv_scene(1, x, y);
+        se += d * d; ++n;
+      }
+    return 10 * std::log10(255.0 * 255.0 / (se / n));
+  };
+  auto dumpErr = [&](const std::vector<uint8_t>& rgba) {
+    if (!std::getenv("LUMEN_YDBG")) return;
+    int big = 0; double mx = 0; int bx = 0, by = 0;
+    for (int y = 300; y < 400; ++y) for (int x = 420; x < 520; ++x) {
+      const uint8_t* p = rgba.data() + (size_t(y) * W + x) * 4;
+      double d = std::fabs(0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2] - yuv_scene(0, x, y));
+      if (d > 20) ++big; if (d > mx) { mx = d; bx = x; by = y; }
+    }
+    std::printf("ydbg region: %d px > 20, max %.1f at %d,%d\n", big, mx, bx, by);
+  };
+  std::vector<uint8_t> one, many;
+  LumenYuvMergeStats s1{}, sN{};
+  run(1, one, s1);
+  run(N, many, sN);
+  double p1 = psnrY(one, false), pN = psnrY(many, false);
+  double c1 = psnrC(one), cN = psnrC(many);
+  double g1 = psnrY(one, true), gN = psnrY(many, true);
+  dumpErr(one); dumpErr(many);
+  std::printf("  luma %.2f -> %.2f dB (+%.2f), chroma %.2f -> %.2f dB, sigma est %.2f (true %.1f), used %.0f%%\n",
+              p1, pN, pN - p1, c1, cN, sN.noise_sigma, sy, 100 * sN.mean_weight);
+  std::printf("  moving object region (must stay like the reference): %.2f dB single, %.2f dB merged\n", g1, gN);
+  CHECK(pN - p1 > 5.0, "luma gain %.2f dB", pN - p1);
+  CHECK(cN - c1 > 4.0, "chroma gain %.2f dB", cN - c1);
+  CHECK(gN > g1 - 0.5, "ghosting: %.2f vs %.2f dB", gN, g1);
+  CHECK(sN.noise_sigma > 0.6f * sy && sN.noise_sigma < 1.5f * sy, "sigma %.2f", sN.noise_sigma);
+  CHECK(sN.frames == N, "frames %d", sN.frames);
+  CHECK(lumen_yuv_merge_create(10, 10, 1.f) == nullptr, "rejects tiny frames");
+
+  if (perf) {
+    const int PW = 4000, PH = 3000, PN = 8;
+    std::vector<uint8_t> Y(size_t(PW) * PH), C(size_t(PW) * PH / 2);
+    for (size_t i = 0; i < Y.size(); ++i) Y[i] = uint8_t(60 + (i * 7) % 120 + int(8 * nd(rng)));
+    for (size_t i = 0; i < C.size(); ++i) C[i] = uint8_t(128 + int(4 * nd(rng)));
+    LumenYuvMerge* m = lumen_yuv_merge_create(PW, PH, 1.f);
+    auto t0 = std::chrono::steady_clock::now();
+    for (int k = 0; k < PN; ++k) lumen_yuv_merge_add(m, Y.data(), PW, C.data() + 1, C.data(), PW, 2);
+    auto t1 = std::chrono::steady_clock::now();
+    std::vector<uint8_t> out(size_t(PW) * PH * 4);
+    lumen_yuv_merge_render(m, out.data(), PW * 4, nullptr);
+    auto t2 = std::chrono::steady_clock::now();
+    lumen_yuv_merge_destroy(m);
+    auto ms = [](auto a, auto b) { return std::chrono::duration<double, std::milli>(b - a).count(); };
+    std::printf("  12MP x %d frames: %.0f ms/frame align+merge, render %.0f ms\n", PN, ms(t0, t1) / PN, ms(t1, t2));
+  }
+}
+
 static void test_performance() {
   std::printf("[performance 12MP]\n");
   Camera cam;
@@ -833,6 +963,7 @@ int main(int argc, char** argv) {
   test_dng_roundtrip();
   test_astro(true);
   test_log_and_misc();
+  test_yuv_merge(perf);
   if (perf) test_performance();
   if (std::getenv("LUMEN_DIAG")) diag_merge();
   std::printf("\n%d checks passed, %d failed\n", g_pass, g_fail);

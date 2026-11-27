@@ -17,7 +17,10 @@ import app.lumen.camera.core.FinishParams
 import app.lumen.camera.core.NativeCore
 import app.lumen.camera.core.RawSpec
 import app.lumen.camera.storage.MediaSaver
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -32,7 +35,8 @@ import kotlin.math.roundToInt
 
 /**
  * Photo pipelines:
- *  - ISP JPEG (device processing)
+ *  - ISP JPEG (device processing, instant; saved in the background)
+ *  - Night without RAW: aligned multi-frame average of the ISP's YUV frames
  *  - Lumen burst: RAW burst -> align + robust merge -> finishing -> AI -> JPEG (+DNG)
  *  - Pro RAW: one RAW -> DNG (+ Lumen-rendered JPEG)
  *  - Astro: long exposures -> star-aligned sigma-clipped stack -> stretch -> JPEG + DNG
@@ -92,15 +96,22 @@ class PhotoPipeline(
     }
 
     // ---- device ISP ----------------------------------------------------------------------
-    suspend fun ispJpeg(orientationDeg: Int, quality: Int): Output = withContext(Dispatchers.IO) {
+    /**
+     * Fast path: one JPEG from the phone's own ISP (its colour, noise reduction and detail).
+     * Returns as soon as the sensor has delivered the frame; writing the file (and the
+     * optional centre crop for 1:1 / full-screen) happens on [bg] so the shutter is free.
+     */
+    suspend fun ispJpeg(bg: CoroutineScope, orientationDeg: Int, quality: Int, cropLongOverShort: Float?): Deferred<Output> {
         val shot = engine.captureJpeg(orientationDeg, quality)
         val buf = shot.image.planes[0].buffer
         val bytes = ByteArray(buf.remaining()).also { buf.get(it) }
         shot.image.close()
-        val uri = MediaSaver.saveJpegBytes(context, bytes, MediaSaver.timestampName("IMG"))
-        val opts = android.graphics.BitmapFactory.Options().apply { inSampleSize = 16 }
-        val thumb = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
-        Output(uri, thumb, "Saved (device processing)")
+        return bg.async(Dispatchers.IO) {
+            val name = MediaSaver.timestampName("IMG")
+            val uri = if (cropLongOverShort != null) MediaSaver.saveJpegCropped(context, bytes, name, cropLongOverShort, quality)
+            else MediaSaver.saveJpegBytes(context, bytes, name)
+            Output(uri, MediaSaver.thumbnailFromJpeg(bytes, cropLongOverShort), "")
+        }
     }
 
     suspend fun extension(orientationDeg: Int, quality: Int, name: String): Output = withContext(Dispatchers.IO) {
@@ -146,6 +157,7 @@ class PhotoPipeline(
     }
 
     suspend fun lumenBurst(
+        bg: CoroutineScope,
         plan: BurstPlan,
         night: Boolean,
         settings: AppSettings,
@@ -153,8 +165,9 @@ class PhotoPipeline(
         zoomRatio: Float,
         manualKelvin: Int?,
         manualTint: Int,
+        cropLongOverShort: Float?,
         progress: (String, Float) -> Unit,
-    ): Output = coroutineScope {
+    ): Deferred<Output> {
         val baseCaps = engine.caps ?: error("no camera")
         val pool = ArrayDeque<ByteBuffer>()
         val queue = Channel<Pair<ByteBuffer, Shot?>>(Channel.UNLIMITED)
@@ -164,7 +177,7 @@ class PhotoPipeline(
         val maxRes = engine.isMaxResMode
 
         // consumer: native align + merge, one frame at a time
-        val consumer = launch(Dispatchers.Default) {
+        val consumer = bg.launch(Dispatchers.Default) {
             var n = 0
             for ((buf, _) in queue) {
                 val s = spec!!
@@ -193,8 +206,9 @@ class PhotoPipeline(
             progress("Capturing $captured/${plan.frames}", 0.1f * captured / plan.frames)
         }
         queue.close()
+        return bg.async(Dispatchers.Default) {
         consumer.join()
-        if (handle == 0L) return@coroutineScope Output(null, null, "No frames captured")
+        if (handle == 0L) return@async Output(null, null, "No frames captured")
         try {
             withContext(Dispatchers.Default) {
                 val stats = NativeCore.burstFinalize(handle) ?: error("merge failed")
@@ -219,6 +233,10 @@ class PhotoPipeline(
                 // multi-camera the RAW comes from the active physical lens.
                 val zoomCrop = if (baseCaps.isLogical) zoomRatio * baseCaps.equivFocal / caps.equivFocal else zoomRatio
                 if (zoomCrop > 1.05f) bmp = cropZoom(bmp, zoomCrop, settings.aiZoom && ai.hasUpscaler()) { p -> progress("AI zoom", 0.85f + 0.1f * p) }
+                if (cropLongOverShort != null) {
+                    val c = centerCrop(bmp, cropLongOverShort)
+                    if (c !== bmp) { bmp.recycle(); bmp = c }
+                }
                 val m = meta(caps, firstResult, orientationDeg)
                 val name = MediaSaver.timestampName("LUMEN")
                 val uri = MediaSaver.saveBitmap(context, bmp, name, settings.jpegQuality, exif(m, orientationDeg))
@@ -235,103 +253,91 @@ class PhotoPipeline(
         } finally {
             NativeCore.burstDestroy(handle)
         }
+        }
     }
 
     /**
-     * Burst merge for phones without RAW access (e.g. most Galaxy A models): processed
-     * YUV frames are linearised into an RGGB mosaic and go through the same align +
-     * robust merge as RAW, then the finishing pipeline (local tone mapping, NR, sharpening).
+     * Night for phones without RAW access (e.g. Galaxy A): a burst of the ISP's own YUV
+     * frames is aligned and averaged by the native merger. Colour, tone and texture stay
+     * the phone's; only noise goes down (about sqrt(frames)). Moving things fall back to
+     * the first frame, so there are no ghosts. No AI, no re-sharpening.
+     *
+     * Suspends only while the sensor captures; merging continues on [bg].
      */
-    suspend fun yuvBurst(
-        night: Boolean,
+    suspend fun yuvNight(
+        bg: CoroutineScope,
         settings: AppSettings,
         orientationDeg: Int,
-        manualIso: Int?,
-        manualShutter: Long?,
+        cropLongOverShort: Float?,
         progress: (String, Float) -> Unit,
-    ): Output = coroutineScope {
+    ): Deferred<Output> {
         val caps = engine.caps ?: error("no camera")
-        val frames = when {
-            settings.burstFrames > 0 -> settings.burstFrames
-            night -> 10
-            else -> 6
-        }
-        // Night without manual sensor control: ask AE for about +1 EV, merging cleans the noise.
+        val frames = if (settings.burstFrames > 0) settings.burstFrames.coerceAtMost(12) else 8
+        // about +1 EV from AE: brighter frames, the merge removes the extra noise
         val stepEv = caps.aeCompStep.toFloat().takeIf { it > 0f } ?: (1f / 3f)
-        val evSteps = if (night) (1f / stepEv).roundToInt().coerceIn(caps.aeCompRange.lower, caps.aeCompRange.upper) else 0
+        val evSteps = (1f / stepEv).roundToInt().coerceIn(caps.aeCompRange.lower, caps.aeCompRange.upper)
+        val queue = Channel<Pair<Array<ByteBuffer>, IntArray>>(Channel.UNLIMITED)
         val pool = ArrayDeque<ByteBuffer>()
-        val queue = Channel<ByteBuffer>(Channel.UNLIMITED)
-        var handle = 0L
         var w = 0
         var h = 0
         var firstResult: CaptureResult? = null
-        val consumer = launch(Dispatchers.Default) {
-            var n = 0
-            for (buf in queue) {
-                if (handle == 0L) {
-                    handle = NativeCore.burstCreate(
-                        w, h, w * 2, 0, false, floatArrayOf(0f, 0f, 0f, 0f), 65535f,
-                        floatArrayOf(0f, 0f, 0f, 0f), floatArrayOf(0f, 0f, 0f, 0f),
-                        if (night) 12f else 10f, if (night) 0.35f else 0.2f, 0,
-                    )
-                }
-                NativeCore.burstAddFrame(handle, buf)
-                synchronized(pool) { pool.addLast(buf) }
-                n++
-                progress("Merging $n/$frames", 0.1f + 0.55f * n / frames)
+        var handle = 0L
+        val consumer = bg.launch(Dispatchers.Default) {
+            for ((planes, geo) in queue) {
+                // geo: width, height, yRowStride, uvRowStride, uvPixelStride
+                if (handle == 0L) handle = NativeCore.yuvMergeCreate(geo[0], geo[1], 1f)
+                if (handle != 0L) NativeCore.yuvMergeAdd(handle, planes[0], planes[1], planes[2], geo[2], geo[3], geo[4])
+                synchronized(pool) { planes.forEach { pool.addLast(it) } }
             }
         }
         var captured = 0
-        engine.captureYuvBurst(frames, manualShutter, manualIso, evSteps) { shot ->
-            val img = shot.image
-            if (w == 0) {
-                w = img.width and 1.inv()
-                h = img.height and 1.inv()
-                firstResult = shot.result
-            }
-            val buf = bufferFor(w * h * 2, pool).also { it.clear() }
-            val p = img.planes
-            val rc = NativeCore.yuvToMosaic(
-                p[0].buffer, p[1].buffer, p[2].buffer, img.width, img.height,
-                p[0].rowStride, p[1].rowStride, p[1].pixelStride, buf,
-            )
-            img.close()
-            if (rc == NativeCore.OK) queue.send(buf)
-            captured++
-            progress("Capturing $captured/$frames", 0.1f * captured / frames)
-        }
-        queue.close()
-        consumer.join()
-        if (handle == 0L) return@coroutineScope Output(null, null, "No frames captured")
         try {
-            withContext(Dispatchers.Default) {
-                val stats = NativeCore.burstFinalize(handle) ?: error("merge failed")
-                progress("Finishing", 0.7f)
-                // frames are already white balanced / colour corrected by the ISP
-                val color = FloatArray(NativeCore.COLOR_SIZE).also {
-                    it[0] = 1f; it[1] = 1f; it[2] = 1f
-                    it[3] = 1f; it[7] = 1f; it[11] = 1f
-                    it[50] = 1f; it[51] = 1f; it[52] = 1f
-                }
-                val fp = FinishParams.forProfile(if (night && settings.profile == NativeCore.PROFILE_NATURAL) NativeCore.PROFILE_NIGHT else settings.profile)
-                    .copy(outputP3 = false)
-                val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-                val rc = NativeCore.burstRender(handle, color, fp.pack(), bmp)
-                if (rc != NativeCore.OK) error("render failed ($rc)")
-                val sigma = NativeCore.burstDisplaySigma(handle)
-                if (settings.aiDenoise && ai.hasDenoiser() && sigma > 0.008f) {
-                    progress("AI denoise", 0.8f)
-                    ai.denoise(bmp, sigma * 1.2f)
-                }
-                val m = meta(caps, firstResult, orientationDeg)
-                val uri = MediaSaver.saveBitmap(context, bmp, MediaSaver.timestampName("LUMEN"), settings.jpegQuality, exif(m, orientationDeg))
-                val thumb = thumbnail(bmp, orientationDeg)
-                bmp.recycle()
-                Output(uri, thumb, "Merged ${stats[0].toInt()} frames" + if (night) " · Night" else "")
+            engine.captureYuvBurst(frames, null, null, evSteps) { shot ->
+                val img = shot.image
+                val p = img.planes
+                if (w == 0) { w = img.width; h = img.height; firstResult = shot.result }
+                val planes = arrayOf(copyDirect(p[0].buffer, pool), copyDirect(p[1].buffer, pool), copyDirect(p[2].buffer, pool))
+                val geo = intArrayOf(w, h, p[0].rowStride, p[1].rowStride, p[1].pixelStride)
+                img.close()
+                queue.send(planes to geo)
+                captured++
+                progress("Hold still", captured.toFloat() / frames)
             }
         } finally {
-            NativeCore.burstDestroy(handle)
+            queue.close()
         }
+        return bg.async(Dispatchers.Default) {
+            consumer.join()
+            if (handle == 0L) return@async Output(null, null, "No frames captured")
+            try {
+                val bmp = Bitmap.createBitmap(w and 1.inv(), h and 1.inv(), Bitmap.Config.ARGB_8888)
+                val stats = NativeCore.yuvMergeRender(handle, bmp) ?: error("merge failed")
+                val out = cropLongOverShort?.let { centerCrop(bmp, it) } ?: bmp
+                val m = meta(caps, firstResult, orientationDeg)
+                val uri = MediaSaver.saveBitmap(context, out, MediaSaver.timestampName("NIGHT"), settings.jpegQuality, exif(m, orientationDeg))
+                val thumb = thumbnail(out, orientationDeg)
+                if (out !== bmp) out.recycle()
+                bmp.recycle()
+                Output(uri, thumb, "Night · ${stats[0].toInt()} frames")
+            } finally {
+                NativeCore.yuvMergeDestroy(handle)
+            }
+        }
+    }
+
+    private fun copyDirect(src: ByteBuffer, pool: ArrayDeque<ByteBuffer>): ByteBuffer {
+        val s = src.duplicate().apply { rewind() }
+        val dst = bufferFor(s.remaining(), pool)
+        dst.clear()
+        dst.put(s)
+        dst.flip()
+        return dst
+    }
+
+    /** Centre crop to a long/short side ratio (1 = square), keeping the orientation. */
+    fun centerCrop(src: Bitmap, longOverShort: Float): Bitmap {
+        val r = MediaSaver.cropRect(src.width, src.height, longOverShort)
+        return Bitmap.createBitmap(src, r.left, r.top, r.width(), r.height())
     }
 
     /** Digital zoom on the rendered RAW (RAW is never cropped by the ISP). */

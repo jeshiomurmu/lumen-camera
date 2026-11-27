@@ -18,6 +18,7 @@ set(LUMEN_CORE_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/src/astro.cpp
   ${CMAKE_CURRENT_LIST_DIR}/src/dng.cpp
   ${CMAKE_CURRENT_LIST_DIR}/src/lut.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/yuv_merge.cpp
   ${CMAKE_CURRENT_LIST_DIR}/src/api.cpp)
 
 add_library(lumen_core STATIC ${LUMEN_CORE_SOURCES})

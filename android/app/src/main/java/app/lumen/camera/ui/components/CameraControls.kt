@@ -2,47 +2,44 @@ package app.lumen.camera.ui.components
 
 import android.graphics.Bitmap
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Cameraswitch
 import androidx.compose.material.icons.outlined.FlashAuto
 import androidx.compose.material.icons.outlined.FlashOff
 import androidx.compose.material.icons.outlined.FlashOn
 import androidx.compose.material.icons.outlined.FlashlightOn
-import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Timer10
 import androidx.compose.material.icons.outlined.Timer3
 import androidx.compose.material.icons.outlined.TimerOff
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -50,75 +47,87 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.lumen.camera.camera.FlashMode
+import app.lumen.camera.ui.Aspect
 import app.lumen.camera.ui.Mode
 import app.lumen.camera.ui.ZoomStop
 import app.lumen.camera.ui.theme.LumenColors
 import kotlin.math.roundToInt
+
+// All controls float directly over the picture: white glyphs with a soft shadow, no plates.
+
+@Composable
+private fun Tap(desc: String, onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Box(
+        modifier.size(44.dp).clip(CircleShape)
+            .clickable(remember { MutableInteractionSource() }, ripple(bounded = false, radius = 22.dp), onClick = onClick)
+            .semantics { contentDescription = desc },
+        contentAlignment = Alignment.Center,
+    ) { content() }
+}
 
 // ---- top bar ------------------------------------------------------------------------------
 @Composable
 fun TopBar(
     flash: FlashMode,
     timer: Int,
-    aspectLabel: String,
-    resolutionLabel: String,
-    rawOn: Boolean,
-    aiOn: Boolean,
+    aspect: Aspect,
+    resolutionLabel: String?,
+    rawOn: Boolean?,
     showNight: Boolean,
     nightOn: Boolean,
     nightSuggested: Boolean,
-    iconRotation: Float,
+    rotation: () -> Float,
     onSettings: () -> Unit,
     onFlash: () -> Unit,
     onTimer: () -> Unit,
     onAspect: () -> Unit,
     onResolution: () -> Unit,
     onRaw: () -> Unit,
-    onAi: () -> Unit,
     onNight: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 6.dp),
+        Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onSettings) { Icon(Icons.Outlined.Settings, "Settings", tint = Color.White, modifier = Modifier.rotate(iconRotation)) }
-        IconButton(onClick = onFlash) {
+        Tap("Settings", onSettings) { ShadowIcon(Icons.Outlined.Settings, null, Color.White, rotation = rotation) }
+        Tap("Flash ${flash.name.lowercase()}", onFlash) {
             val icon = when (flash) {
                 FlashMode.OFF -> Icons.Outlined.FlashOff
                 FlashMode.AUTO -> Icons.Outlined.FlashAuto
                 FlashMode.ON -> Icons.Outlined.FlashOn
                 FlashMode.TORCH -> Icons.Outlined.FlashlightOn
             }
-            Icon(icon, "Flash", tint = if (flash == FlashMode.OFF) Color.White else LumenColors.Accent, modifier = Modifier.rotate(iconRotation))
+            ShadowIcon(icon, null, if (flash == FlashMode.OFF) Color.White else LumenColors.Accent, rotation = rotation)
         }
-        IconButton(onClick = onTimer) {
-            val icon = when (timer) { 0 -> Icons.Outlined.TimerOff; 3 -> Icons.Outlined.Timer3; 10 -> Icons.Outlined.Timer10; else -> Icons.Outlined.Timer }
-            Icon(icon, "Timer", tint = if (timer == 0) Color.White else LumenColors.Accent, modifier = Modifier.rotate(iconRotation))
+        Tap("Timer ${timer}s", onTimer) {
+            val icon = when (timer) { 3 -> Icons.Outlined.Timer3; 10 -> Icons.Outlined.Timer10; else -> Icons.Outlined.TimerOff }
+            ShadowIcon(icon, null, if (timer == 0) Color.White else LumenColors.Accent, rotation = rotation)
         }
-        TextChip(aspectLabel, false, iconRotation, onAspect)
-        TextChip(resolutionLabel, false, iconRotation, onResolution)
-        TextChip("RAW", rawOn, iconRotation, onRaw)
-        IconButton(onClick = onAi) {
-            Icon(Icons.Outlined.AutoAwesome, "AI enhance", tint = if (aiOn) LumenColors.Accent else Color.White, modifier = Modifier.rotate(iconRotation))
-        }
+        Tap("Aspect ratio ${aspect.label}", onAspect) { OutlineLabel(aspect.label, false, rotation) }
+        if (resolutionLabel != null) Tap("Resolution $resolutionLabel", onResolution) { OutlineLabel(resolutionLabel, false, rotation) }
+        if (rawOn != null) Tap("RAW", onRaw) { OutlineLabel("RAW", rawOn, rotation) }
         if (showNight) {
-            IconButton(onClick = onNight) {
-                Icon(
-                    Icons.Outlined.Bedtime, "Night",
-                    tint = when { nightOn -> LumenColors.Accent; nightSuggested -> Color(0xFFFFE08A); else -> Color.White },
-                    modifier = Modifier.rotate(iconRotation),
+            Tap("Night", onNight) {
+                ShadowIcon(
+                    Icons.Outlined.Bedtime, null,
+                    when { nightOn -> LumenColors.Accent; nightSuggested -> Color(0xFFFFE08A); else -> Color.White },
+                    rotation = rotation,
                 )
             }
         }
@@ -126,80 +135,99 @@ fun TopBar(
 }
 
 @Composable
-fun TextChip(text: String, on: Boolean, rotation: Float, onClick: () -> Unit) {
+private fun OutlineLabel(text: String, on: Boolean, rotation: () -> Float) {
+    val c = if (on) LumenColors.Accent else Color.White
     Box(
-        Modifier.clip(RoundedCornerShape(6.dp))
-            .border(1.dp, if (on) LumenColors.Accent else Color.White.copy(alpha = 0.8f), RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .rotate(rotation),
+        Modifier.graphicsLayer { rotationZ = rotation() }
+            .border(1.5.dp, c, RoundedCornerShape(5.dp)).padding(horizontal = 5.dp, vertical = 1.dp),
     ) {
-        Text(text, color = if (on) LumenColors.Accent else Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Text(text, style = overlayStyle(11.sp, FontWeight.Bold, c))
     }
 }
 
-// ---- zoom pills ---------------------------------------------------------------------------
+/** Framing choices, shown in place under the top bar. */
 @Composable
-fun ZoomBar(stops: List<ZoomStop>, factor: Float, rotation: Float, onSelect: (ZoomStop) -> Unit) {
-    if (stops.isEmpty()) return
-    val active = stops.minByOrNull { kotlin.math.abs(it.factor - factor) }
+fun AspectPicker(current: Aspect, onSelect: (Aspect) -> Unit) {
     Row(
-        Modifier.clip(RoundedCornerShape(50)).background(Color(0x55000000)).padding(horizontal = 4.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Aspect.entries.forEach { a ->
+            val sel = a == current
+            Box(
+                Modifier.clip(RoundedCornerShape(6.dp)).clickable { onSelect(a) }
+                    .semantics { contentDescription = "Aspect ${a.label}" }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            ) {
+                Text(a.label, style = overlayStyle(15.sp, if (sel) FontWeight.Bold else FontWeight.Medium, if (sel) LumenColors.Accent else Color.White))
+            }
+        }
+    }
+}
+
+// ---- zoom ----------------------------------------------------------------------------------
+@Composable
+fun ZoomBar(stops: List<ZoomStop>, factor: Float, rotation: () -> Float, onSelect: (ZoomStop) -> Unit) {
+    if (stops.isEmpty()) return
+    val active = stops.minByOrNull { kotlin.math.abs(it.factor - factor) }
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
         stops.forEach { s ->
             val sel = s == active
             val label = if (sel) {
-                if (factor < 1f) "%.1fx".format(factor).trimStart('0') else if (kotlin.math.abs(factor - factor.roundToInt()) < 0.05f) "${factor.roundToInt()}x" else "%.1fx".format(factor)
+                if (factor < 1f) "%.1f".format(factor).trimStart('0') + "x"
+                else if (kotlin.math.abs(factor - factor.roundToInt()) < 0.05f) "${factor.roundToInt()}x" else "%.1fx".format(factor)
             } else s.label
             Box(
-                Modifier.size(if (sel) 42.dp else 34.dp).clip(CircleShape)
-                    .background(if (sel) Color(0xCC1E1E1E) else Color(0x66000000))
-                    .clickable { onSelect(s) },
+                Modifier.size(40.dp).clip(CircleShape)
+                    .then(if (sel) Modifier.border(1.5.dp, LumenColors.Accent, CircleShape) else Modifier)
+                    .clickable { onSelect(s) }
+                    .semantics { contentDescription = "Zoom ${s.label}" },
                 contentAlignment = Alignment.Center,
             ) {
-                Text(label, color = if (sel) LumenColors.Accent else Color.White, fontSize = if (sel) 13.sp else 11.sp,
-                    fontWeight = FontWeight.Bold, modifier = Modifier.rotate(rotation))
+                Text(
+                    label, style = overlayStyle(if (sel) 13.sp else 12.sp, FontWeight.Bold, if (sel) LumenColors.Accent else Color.White),
+                    modifier = Modifier.graphicsLayer { rotationZ = rotation() },
+                )
             }
         }
     }
 }
 
-// ---- mode carousel -----------------------------------------------------------------------
+// ---- mode selector ---------------------------------------------------------------------------
+/** Modes laid out with the current one centred; tap a neighbour or swipe the viewfinder. */
 @Composable
 fun ModeCarousel(modes: List<Mode>, current: Mode, onSelect: (Mode) -> Unit, onMore: () -> Unit) {
-    val scroll = rememberScrollState()
-    LaunchedEffect(current) {
-        val idx = modes.indexOf(current)
-        scroll.animateScrollTo((idx * 220).coerceAtMost(scroll.maxValue))
-    }
-    Row(
-        Modifier.fillMaxWidth().height(44.dp).horizontalScroll(scroll),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Spacer(Modifier.width(80.dp))
-        modes.forEach { m ->
-            val sel = m == current
+    val density = LocalDensity.current
+    val items = modes.map { it.label } + "MORE"
+    val idx = modes.indexOf(current).coerceAtLeast(0)
+    val itemW = 92.dp
+    val pos by animateFloatAsState(idx.toFloat(), tween(220), label = "modePos")
+    BoxWithConstraints(Modifier.fillMaxWidth().height(40.dp)) {
+        val centre = with(density) { (maxWidth / 2 - itemW / 2).toPx() }
+        val step = with(density) { itemW.toPx() }
+        items.forEachIndexed { i, label ->
+            val sel = i == idx
             Box(
-                Modifier.clip(RoundedCornerShape(50))
-                    .background(if (sel) Color(0xFF2B2B2E) else Color.Transparent)
-                    .clickable { onSelect(m) }
-                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                Modifier.width(itemW).height(40.dp)
+                    .offset { IntOffset((centre + (i - pos) * step).roundToInt(), 0) }
+                    .clickable(remember { MutableInteractionSource() }, null) { if (i < modes.size) onSelect(modes[i]) else onMore() }
+                    .semantics { contentDescription = "Mode $label" },
+                contentAlignment = Alignment.Center,
             ) {
-                Text(m.label, color = if (sel) Color.White else LumenColors.TextDim, fontSize = 13.sp,
-                    fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(label, style = overlayStyle(13.sp, if (sel) FontWeight.Bold else FontWeight.Medium,
+                        if (sel) Color.White else Color.White.copy(alpha = 0.72f)))
+                    Spacer(Modifier.height(3.dp))
+                    Box(Modifier.size(4.dp).clip(CircleShape).then(
+                        if (sel) Modifier.border(2.dp, LumenColors.Accent, CircleShape) else Modifier))
+                }
             }
         }
-        Box(Modifier.clip(RoundedCornerShape(50)).clickable(onClick = onMore).padding(horizontal = 14.dp, vertical = 7.dp)) {
-            Text("MORE", color = LumenColors.TextDim, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-        }
-        Spacer(Modifier.width(80.dp))
     }
 }
 
-// ---- shutter row ---------------------------------------------------------------------------
+// ---- shutter row ------------------------------------------------------------------------------
 @Composable
 fun ShutterRow(
     mode: Mode,
@@ -207,44 +235,55 @@ fun ShutterRow(
     busy: Boolean,
     progress: Float,
     countdown: Int,
+    processing: Int,
     thumbnail: Bitmap?,
-    rotation: Float,
+    rotation: () -> Float,
     onShutter: () -> Unit,
     onGallery: () -> Unit,
     onFlip: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().height(112.dp).padding(horizontal = 34.dp),
+        Modifier.fillMaxWidth().height(104.dp).padding(horizontal = 36.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            Modifier.size(52.dp).clip(CircleShape).background(Color(0xFF222224)).border(1.5.dp, Color.White, CircleShape)
-                .clickable(onClick = onGallery),
+            Modifier.size(50.dp).clip(CircleShape).border(1.5.dp, Color.White, CircleShape)
+                .clickable(onClick = onGallery).semantics { contentDescription = "Gallery" },
+            contentAlignment = Alignment.Center,
         ) {
             thumbnail?.let {
-                Image(it.asImageBitmap(), "Last capture", Modifier.size(52.dp).rotate(rotation), contentScale = ContentScale.Crop)
+                Image(it.asImageBitmap(), "Last capture", Modifier.size(50.dp).graphicsLayer { rotationZ = rotation() },
+                    contentScale = ContentScale.Crop)
             }
+            if (processing > 0) CircularProgressIndicator(Modifier.size(50.dp), color = LumenColors.Accent, strokeWidth = 2.dp)
         }
         ShutterButton(mode, recording, busy, progress, countdown, onShutter)
-        IconButton(onClick = onFlip, modifier = Modifier.size(52.dp).clip(CircleShape).background(Color(0x33FFFFFF))) {
-            Icon(Icons.Outlined.Cameraswitch, "Switch camera", tint = Color.White, modifier = Modifier.rotate(rotation))
+        Tap("Switch camera", onFlip, Modifier.size(50.dp)) {
+            ShadowIcon(Icons.Outlined.Cameraswitch, null, Color.White, rotation = rotation)
         }
     }
 }
 
 @Composable
 fun ShutterButton(mode: Mode, recording: Boolean, busy: Boolean, progress: Float, countdown: Int, onClick: () -> Unit) {
-    val inner by animateFloatAsState(if (recording) 0.42f else 0.78f, label = "shutter")
-    Box(Modifier.size(78.dp).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(78.dp)) {
+    val inner by animateFloatAsState(if (recording) 0.42f else 0.8f, tween(160), label = "shutter")
+    val src = remember { MutableInteractionSource() }
+    Box(
+        Modifier.size(76.dp).clip(CircleShape)
+            .clickable(src, ripple(bounded = false, radius = 38.dp, color = Color.White), onClick = onClick)
+            .semantics { contentDescription = "Shutter" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(76.dp)) {
             val r = size.minDimension / 2
-            drawCircle(Color.White, r - 2.dp.toPx(), style = Stroke(4.dp.toPx()))
+            drawCircle(Color.Black.copy(alpha = 0.25f), r - 2.dp.toPx(), center = center + Offset(0f, 1.5f), style = Stroke(4.dp.toPx()))
+            drawCircle(Color.White, r - 2.dp.toPx(), style = Stroke(3.5.dp.toPx()))
             if (busy && progress > 0f) {
                 drawArc(LumenColors.Accent, -90f, 360f * progress.coerceIn(0f, 1f), false,
                     topLeft = Offset(2.dp.toPx(), 2.dp.toPx()),
                     size = androidx.compose.ui.geometry.Size(size.width - 4.dp.toPx(), size.height - 4.dp.toPx()),
-                    style = Stroke(4.dp.toPx()))
+                    style = Stroke(3.5.dp.toPx()))
             }
             val fill = when {
                 mode.isVideo -> LumenColors.Record
@@ -256,79 +295,79 @@ fun ShutterButton(mode: Mode, recording: Boolean, busy: Boolean, progress: Float
                 drawRoundRect(fill, topLeft = Offset(center.x - s / 2, center.y - s / 2),
                     size = androidx.compose.ui.geometry.Size(s, s), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx()))
             } else {
-                drawCircle(if (busy) fill.copy(alpha = 0.5f) else fill, r * inner)
+                drawCircle(if (busy) fill.copy(alpha = 0.55f) else fill, r * inner)
             }
         }
         if (countdown > 0) Text("$countdown", color = Color.Black, fontSize = 26.sp, fontWeight = FontWeight.Bold)
     }
 }
 
-// ---- Pro panel -----------------------------------------------------------------------------
+// ---- Pro controls -----------------------------------------------------------------------------
 data class ProValue(val label: String, val value: String, val auto: Boolean)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProChips(values: List<ProValue>, selected: String?, onSelect: (String) -> Unit, onReset: (String) -> Unit, onPresets: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
         values.forEach { v ->
             val sel = v.label == selected
             Column(
-                Modifier.clip(RoundedCornerShape(10.dp))
-                    .background(if (sel) Color(0xFF2B2B2E) else Color(0x44000000))
+                Modifier.clip(RoundedCornerShape(8.dp))
                     .combinedClickable(onClick = { onSelect(v.label) }, onLongClick = { onReset(v.label) })
-                    .padding(horizontal = 12.dp, vertical = 5.dp),
+                    .semantics { contentDescription = "Pro ${v.label}" }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(v.label, color = LumenColors.TextDim, fontSize = 10.sp)
-                Text(v.value, color = if (v.auto) Color.White else LumenColors.Accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(v.label, style = overlayStyle(10.sp, FontWeight.Medium, if (sel) LumenColors.Accent else Color.White.copy(alpha = 0.8f)))
+                Text(v.value, style = overlayStyle(14.sp, FontWeight.Bold, if (sel || !v.auto) LumenColors.Accent else Color.White))
             }
         }
         Column(
-            Modifier.clip(RoundedCornerShape(10.dp)).background(Color(0x44000000)).clickable(onClick = onPresets)
-                .padding(horizontal = 12.dp, vertical = 5.dp),
+            Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onPresets).padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("PRESET", color = LumenColors.TextDim, fontSize = 10.sp)
-            Text("☰", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text("PRESET", style = overlayStyle(10.sp, FontWeight.Medium, Color.White.copy(alpha = 0.8f)))
+            Text("···", style = overlayStyle(14.sp, FontWeight.Bold))
         }
     }
 }
 
 /**
  * Horizontal "ruler" dial: drag to move through [labels]; index 0 can be "A" (auto).
+ * Ticks move with the finger between steps for a smooth feel.
  */
 @Composable
 fun RulerDial(labels: List<String>, index: Int, onIndex: (Int) -> Unit) {
     if (labels.isEmpty()) return
     var acc by remember { mutableFloatStateOf(0f) }
-    val stepPx = 26f
-    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(labels[index.coerceIn(0, labels.lastIndex)], color = LumenColors.Accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    val density = LocalDensity.current
+    val stepPx = with(density) { 14.dp.toPx() }
+    Column(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(labels[index.coerceIn(0, labels.lastIndex)], style = overlayStyle(15.sp, FontWeight.Bold, LumenColors.Accent))
         Canvas(
-            Modifier.fillMaxWidth().height(34.dp).pointerInput(labels, index) {
-                detectHorizontalDragGestures(onDragEnd = { acc = 0f }) { change, d ->
+            Modifier.fillMaxWidth().height(30.dp).pointerInput(labels, index) {
+                detectHorizontalDragGestures(onDragEnd = { acc = 0f }, onDragCancel = { acc = 0f }) { change, d ->
                     change.consume()
                     acc += d
                     val steps = (acc / stepPx).toInt()
                     if (steps != 0) {
+                        val target = (index - steps).coerceIn(0, labels.lastIndex)
                         acc -= steps * stepPx
-                        onIndex((index - steps).coerceIn(0, labels.lastIndex))
+                        if (target != index) onIndex(target)
                     }
                 }
             },
         ) {
-            val cx = size.width / 2
-            val spacing = 13.dp.toPx()
+            val cx = size.width / 2 + acc
             for (i in labels.indices) {
-                val x = cx + (i - index) * spacing
+                val x = cx + (i - index) * stepPx
                 if (x < 0 || x > size.width) continue
                 val major = i % 3 == 0
+                val top = if (major) 4f else 12f
+                drawLine(Color.Black.copy(alpha = 0.3f), Offset(x, top + 1.5f), Offset(x, size.height - 2.5f), 2.5f)
                 drawLine(
-                    if (i == index) LumenColors.Accent else Color.White.copy(alpha = if (major) 0.9f else 0.45f),
-                    Offset(x, if (major) 4f else 12f), Offset(x, size.height - 4f), if (i == index) 3f else 1.5f,
+                    if (i == index) LumenColors.Accent else Color.White.copy(alpha = if (major) 0.95f else 0.6f),
+                    Offset(x, top), Offset(x, size.height - 4f), if (i == index) 3f else 1.5f,
                 )
             }
         }

@@ -1,16 +1,16 @@
 package app.lumen.camera.ui.components
 
 import android.graphics.Matrix
-import android.graphics.RectF
 import android.graphics.SurfaceTexture
 import android.util.Size
-import android.view.Surface
 import android.view.TextureView
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -28,21 +28,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as GSize
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import app.lumen.camera.ui.theme.LumenColors
 import app.lumen.camera.util.FrameAnalysis
 import kotlinx.coroutines.delay
+import kotlin.math.abs
+
+/** Soft drop shadow that keeps white type readable over any scene without a dark backing. */
+val OverlayShadow = Shadow(Color.Black.copy(alpha = 0.75f), Offset(0f, 1.5f), 6f)
+
+fun overlayStyle(size: TextUnit, weight: FontWeight = FontWeight.Medium, color: Color = Color.White) =
+    TextStyle(color = color, fontSize = size, fontWeight = weight, shadow = OverlayShadow)
 
 /**
- * Camera preview (TextureView) with tap-to-focus, pinch-to-zoom and periodic
- * small frames for histogram / focus peaking / zebras.
+ * Camera preview. The stream is centre-cropped to fill this composable (so 1:1 and Full
+ * framings show exactly what is saved). One gesture handler does tap-to-focus, pinch-zoom
+ * and horizontal swipes between modes.
  */
 @Composable
 fun Viewfinder(
@@ -51,6 +66,7 @@ fun Viewfinder(
     onSurface: (SurfaceTexture?) -> Unit,
     onTap: (Float, Float) -> Unit,
     onPinch: (Float) -> Unit,
+    onSwipe: (Int) -> Unit,
     onAnalysisFrame: (android.graphics.Bitmap) -> Unit,
     analysisEnabled: Boolean,
 ) {
@@ -58,17 +74,20 @@ fun Viewfinder(
     var focusPoint by remember { mutableStateOf<Offset?>(null) }
     val currentPreview by rememberUpdatedState(previewSize)
     val currentOnSurface by rememberUpdatedState(onSurface)
+    val tap by rememberUpdatedState(onTap)
+    val pinch by rememberUpdatedState(onPinch)
+    val swipe by rememberUpdatedState(onSwipe)
     Box(modifier) {
         AndroidView(
             factory = { ctx ->
                 TextureView(ctx).apply {
                     surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                         override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {
-                            configureTransform(this@apply, currentPreview, w, h)
+                            centerCrop(this@apply, currentPreview, w, h)
                             currentOnSurface(st)
                         }
                         override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {
-                            configureTransform(this@apply, currentPreview, w, h)
+                            centerCrop(this@apply, currentPreview, w, h)
                         }
                         override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean {
                             currentOnSurface(null)
@@ -79,76 +98,101 @@ fun Viewfinder(
                     view = this
                 }
             },
-            update = { tv -> configureTransform(tv, previewSize, tv.width, tv.height) },
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures { off ->
-                        focusPoint = off
-                        onTap(off.x / size.width, off.y / size.height)
+            update = { tv -> centerCrop(tv, previewSize, tv.width, tv.height) },
+            modifier = Modifier.fillMaxSize().pointerInput(Unit) {
+                val swipeMin = 64.dp.toPx()
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    var pan = Offset.Zero
+                    var multi = false
+                    while (true) {
+                        val ev = awaitPointerEvent()
+                        val pressed = ev.changes.filter { it.pressed }
+                        if (pressed.isEmpty()) break
+                        if (pressed.size >= 2) {
+                            multi = true
+                            val z = ev.calculateZoom()
+                            if (z != 1f) pinch(z)
+                        } else {
+                            pan += ev.changes.first().positionChange()
+                        }
+                        ev.changes.forEach { if (it.positionChange() != Offset.Zero) it.consume() }
+                    }
+                    if (!multi) {
+                        when {
+                            abs(pan.x) > swipeMin && abs(pan.x) > 2 * abs(pan.y) -> swipe(if (pan.x < 0) 1 else -1)
+                            pan.getDistance() < 24.dp.toPx() -> {
+                                val p = down.position
+                                focusPoint = p
+                                val (nx, ny) = toBuffer(p.x, p.y, size.width.toFloat(), size.height.toFloat(), currentPreview)
+                                tap(nx, ny)
+                            }
+                        }
                     }
                 }
-                .pointerInput(Unit) {
-                    detectTransformGestures { _, _, zoom, _ -> if (zoom != 1f) onPinch(zoom) }
-                },
+            },
         )
         focusPoint?.let { p ->
+            val anim = remember(p) { Animatable(1.4f) }
             LaunchedEffect(p) {
-                delay(1200)
+                anim.animateTo(1f, tween(180))
+                delay(1100)
                 focusPoint = null
             }
             Canvas(Modifier.fillMaxSize()) {
-                drawCircle(LumenColors.Accent, radius = 36.dp.toPx(), center = p, style = Stroke(2.dp.toPx()))
+                val r = 34.dp.toPx() * anim.value
+                drawCircle(Color.Black.copy(alpha = 0.35f), radius = r, center = p + Offset(0f, 1.5f), style = Stroke(3.dp.toPx()))
+                drawCircle(Color.White, radius = r, center = p, style = Stroke(1.5.dp.toPx()))
             }
         }
     }
     LaunchedEffect(analysisEnabled, view) {
         while (analysisEnabled) {
-            delay(160)
+            delay(200)
             val tv = view ?: continue
             if (!tv.isAvailable || tv.width == 0) continue
-            val w = 192
+            val w = 160
             val h = (w * tv.height.toFloat() / tv.width).toInt().coerceAtLeast(16)
             tv.getBitmap(w, h)?.let(onAnalysisFrame)
         }
     }
 }
 
-/** Camera2Basic-style transform so the preview is upright for any display rotation. */
-private fun configureTransform(tv: TextureView, preview: Size, viewW: Int, viewH: Int) {
+/** Portrait content size of the preview buffer (the sensor stream is landscape). */
+private fun content(preview: Size) = preview.height.toFloat() to preview.width.toFloat()
+
+/** Scale the TextureView content so it covers the view without distortion (centre crop). */
+private fun centerCrop(tv: TextureView, preview: Size, viewW: Int, viewH: Int) {
     if (viewW == 0 || viewH == 0) return
-    val rotation = tv.display?.rotation ?: Surface.ROTATION_0
-    val matrix = Matrix()
-    val viewRect = RectF(0f, 0f, viewW.toFloat(), viewH.toFloat())
-    val bufferRect = RectF(0f, 0f, preview.height.toFloat(), preview.width.toFloat())
-    val cx = viewRect.centerX()
-    val cy = viewRect.centerY()
-    if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
-        bufferRect.offset(cx - bufferRect.centerX(), cy - bufferRect.centerY())
-        matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL)
-        val scale = maxOf(viewH.toFloat() / preview.height, viewW.toFloat() / preview.width)
-        matrix.postScale(scale, scale, cx, cy)
-        matrix.postRotate(90f * (rotation - 2), cx, cy)
-    } else if (rotation == Surface.ROTATION_180) {
-        matrix.postRotate(180f, cx, cy)
-    }
-    tv.setTransform(matrix)
+    val (cw, ch) = content(preview)
+    val s = maxOf(viewW / cw, viewH / ch)
+    val m = Matrix()
+    // TextureView stretches the content to the view; undo that, then scale uniformly
+    m.setScale(cw * s / viewW, ch * s / viewH, viewW / 2f, viewH / 2f)
+    tv.setTransform(m)
 }
 
-/** Grid, level, histogram, peaking/zebra overlays drawn over the viewfinder. */
+/** View point -> normalised position in the full preview frame (for metering regions). */
+private fun toBuffer(x: Float, y: Float, viewW: Float, viewH: Float, preview: Size): Pair<Float, Float> {
+    val (cw, ch) = content(preview)
+    val s = maxOf(viewW / cw, viewH / ch)
+    val nx = 0.5f + (x - viewW / 2f) / (cw * s)
+    val ny = 0.5f + (y - viewH / 2f) / (ch * s)
+    return nx.coerceIn(0f, 1f) to ny.coerceIn(0f, 1f)
+}
+
+/** Grid, level, frame guides, histogram, peaking/zebra/false-colour over the viewfinder. */
 @Composable
 fun ViewfinderOverlays(
     grid: Boolean,
     level: Boolean,
-    roll: Float,
+    roll: () -> Float,
     histogram: Boolean,
     analysis: FrameAnalysis?,
     modifier: Modifier,
     frameGuide: Float = 0f,
     safeArea: Int = 0,
     landscape: Boolean = false,
-    audio: FloatArray? = null,
-    timecode: String? = null,
 ) {
     Box(modifier) {
         analysis?.falseColor?.let {
@@ -160,61 +204,73 @@ fun ViewfinderOverlays(
         analysis?.zebras?.let {
             Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
         }
-        Canvas(Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            if (grid) {
-                val c = Color.White.copy(alpha = 0.35f)
-                for (i in 1..2) {
-                    drawLine(c, Offset(w * i / 3, 0f), Offset(w * i / 3, h), 1f)
-                    drawLine(c, Offset(0f, h * i / 3), Offset(w, h * i / 3), 1f)
+        if (grid || frameGuide > 0f || safeArea in 1..99) {
+            Canvas(Modifier.fillMaxSize()) {
+                val w = size.width
+                val h = size.height
+                if (grid) {
+                    val c = Color.White.copy(alpha = 0.4f)
+                    for (i in 1..2) {
+                        drawLine(c, Offset(w * i / 3, 0f), Offset(w * i / 3, h), 1f)
+                        drawLine(c, Offset(0f, h * i / 3), Offset(w, h * i / 3), 1f)
+                    }
                 }
-            }
-            // frame guide (e.g. 2.39:1) for the way the phone is held, with darkened outside
-            if (frameGuide > 0f) {
-                val vfLong = if (landscape) h else w
-                val vfShort = if (landscape) w else h
-                // guide is wider than tall in the recorded (held) orientation
-                var gl = vfLong
-                var gs = gl / frameGuide
-                if (gs > vfShort) { gs = vfShort; gl = gs * frameGuide }
-                val gw = if (landscape) gs else gl
-                val gh = if (landscape) gl else gs
-                val l = (w - gw) / 2; val t = (h - gh) / 2
-                val shade = Color.Black.copy(alpha = 0.55f)
-                drawRect(shade, Offset(0f, 0f), GSize(w, t))
-                drawRect(shade, Offset(0f, t + gh), GSize(w, h - t - gh))
-                drawRect(shade, Offset(0f, t), GSize(l, gh))
-                drawRect(shade, Offset(l + gw, t), GSize(w - l - gw, gh))
-                drawRect(Color.White.copy(alpha = 0.8f), Offset(l, t), GSize(gw, gh), style = Stroke(1.5f))
-            }
-            if (safeArea in 1..99) {
-                val f = safeArea / 100f
-                drawRect(LumenColors.Accent.copy(alpha = 0.8f), Offset(w * (1 - f) / 2, h * (1 - f) / 2), GSize(w * f, h * f), style = Stroke(1.5f))
-            }
-            if (level && kotlin.math.abs(roll) < 30f) {
-                val ok = kotlin.math.abs(roll) < 1f
-                rotate(-roll, pivot = Offset(w / 2, h / 2)) {
-                    drawLine(
-                        if (ok) LumenColors.Good else Color.White.copy(alpha = 0.8f),
-                        Offset(w * 0.35f, h / 2), Offset(w * 0.65f, h / 2), if (ok) 3f else 2f,
-                    )
+                // frame guide (e.g. 2.39:1) for the way the phone is held, outside darkened
+                if (frameGuide > 0f) {
+                    val vfLong = if (landscape) h else w
+                    val vfShort = if (landscape) w else h
+                    var gl = vfLong
+                    var gs = gl / frameGuide
+                    if (gs > vfShort) { gs = vfShort; gl = gs * frameGuide }
+                    val gw = if (landscape) gs else gl
+                    val gh = if (landscape) gl else gs
+                    val l = (w - gw) / 2; val t = (h - gh) / 2
+                    val shade = Color.Black.copy(alpha = 0.55f)
+                    drawRect(shade, Offset(0f, 0f), GSize(w, t))
+                    drawRect(shade, Offset(0f, t + gh), GSize(w, h - t - gh))
+                    drawRect(shade, Offset(0f, t), GSize(l, gh))
+                    drawRect(shade, Offset(l + gw, t), GSize(w - l - gw, gh))
+                    drawRect(Color.White.copy(alpha = 0.8f), Offset(l, t), GSize(gw, gh), style = Stroke(1.5f))
+                }
+                if (safeArea in 1..99) {
+                    val f = safeArea / 100f
+                    drawRect(LumenColors.Accent.copy(alpha = 0.8f), Offset(w * (1 - f) / 2, h * (1 - f) / 2), GSize(w * f, h * f), style = Stroke(1.5f))
                 }
             }
         }
+        if (level) LevelLine(roll, Modifier.fillMaxSize())
         if (histogram && analysis != null) {
-            Histogram(analysis, Modifier.align(Alignment.TopEnd).padding(8.dp).size(112.dp, 56.dp))
+            Histogram(analysis, Modifier.align(Alignment.TopEnd).padding(10.dp).size(104.dp, 48.dp))
         }
-        if (audio != null) {
-            AudioMeters(audio, Modifier.align(Alignment.CenterStart).padding(6.dp).size(18.dp, 120.dp))
+    }
+}
+
+/** Horizon line; reads the roll in the draw phase so sensor updates never recompose. */
+@Composable
+private fun LevelLine(roll: () -> Float, modifier: Modifier) {
+    Canvas(modifier) {
+        val r = roll()
+        if (abs(r) >= 30f) return@Canvas
+        val w = size.width
+        val h = size.height
+        val ok = abs(r) < 1f
+        rotate(-r, pivot = Offset(w / 2, h / 2)) {
+            val c = if (ok) LumenColors.Accent else Color.White.copy(alpha = 0.85f)
+            drawLine(Color.Black.copy(alpha = 0.3f), Offset(w * 0.38f, h / 2 + 1.5f), Offset(w * 0.62f, h / 2 + 1.5f), 3f)
+            drawLine(c, Offset(w * 0.38f, h / 2), Offset(w * 0.62f, h / 2), if (ok) 2.5f else 1.5f)
         }
+    }
+}
+
+/** Recording read-outs: timecode and audio meters. */
+@Composable
+fun RecordOverlay(timecode: String?, audio: FloatArray?, modifier: Modifier) {
+    Box(modifier) {
+        if (audio != null) AudioMeters(audio, Modifier.align(Alignment.CenterStart).padding(8.dp).size(14.dp, 110.dp))
         if (timecode != null) {
             Text(
-                timecode, color = Color.White, fontSize = 13.sp,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                modifier = Modifier.align(Alignment.BottomStart).padding(8.dp)
-                    .background(Color(0x99000000), androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                timecode, style = overlayStyle(14.sp, FontWeight.SemiBold).copy(fontFamily = FontFamily.Monospace),
+                modifier = Modifier.align(Alignment.BottomStart).padding(10.dp),
             )
         }
     }
@@ -223,7 +279,7 @@ fun ViewfinderOverlays(
 /** Two-channel peak meters, dBFS from -60 to 0 (green / yellow above -12 / red above -3). */
 @Composable
 fun AudioMeters(db: FloatArray, modifier: Modifier) {
-    Canvas(modifier.background(Color(0x88000000))) {
+    Canvas(modifier) {
         val bw = size.width / 2f
         for (ch in 0 until minOf(2, db.size)) {
             val f = ((db[ch] + 60f) / 60f).coerceIn(0f, 1f)
@@ -233,20 +289,22 @@ fun AudioMeters(db: FloatArray, modifier: Modifier) {
                 db[ch] > -12f -> Color(0xFFFFD60A)
                 else -> Color(0xFF34C759)
             }
+            drawRect(Color.White.copy(alpha = 0.6f), Offset(ch * bw + 1f, 0f), GSize(bw - 2f, size.height), style = Stroke(1f))
             drawRect(c, Offset(ch * bw + 1f, size.height - hgt), GSize(bw - 2f, hgt))
         }
         for (mark in listOf(-12f, -3f)) {
             val y = size.height * (1f - (mark + 60f) / 60f)
-            drawLine(Color.White.copy(alpha = 0.5f), Offset(0f, y), Offset(size.width, y), 1f)
+            drawLine(Color.White.copy(alpha = 0.6f), Offset(0f, y), Offset(size.width, y), 1f)
         }
     }
 }
 
 @Composable
 fun Histogram(a: FrameAnalysis, modifier: Modifier) {
-    Canvas(modifier.background(Color(0x88000000))) {
+    Canvas(modifier) {
         val n = a.lumaHist.size
         val bw = size.width / n
+        drawRect(Color.White.copy(alpha = 0.5f), Offset.Zero, size, style = Stroke(1f))
         val colors = listOf(Color(0x99FF453A), Color(0x9930D158), Color(0x990A84FF))
         a.rgbHist.forEachIndexed { ci, hist ->
             for (i in 0 until n) {
@@ -261,11 +319,24 @@ fun Histogram(a: FrameAnalysis, modifier: Modifier) {
     }
 }
 
+/** White status text with a drop shadow (no background box). */
 @Composable
-fun InfoText(text: String, modifier: Modifier) {
-    Text(
-        text, color = Color.White, fontSize = 12.sp,
-        modifier = modifier.background(Color(0x66000000), shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
-    )
+fun InfoText(text: String, modifier: Modifier, color: Color = Color.White) {
+    Text(text, style = overlayStyle(12.sp, FontWeight.SemiBold, color), modifier = modifier)
+}
+
+/** Shadowed icon: a soft dark copy under the white glyph, so it reads on bright skies. */
+@Composable
+fun ShadowIcon(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    desc: String?,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    rotation: () -> Float = { 0f },
+) {
+    Box(modifier.graphicsLayer { rotationZ = rotation() }) {
+        androidx.compose.material3.Icon(icon, null, tint = Color.Black.copy(alpha = 0.45f),
+            modifier = Modifier.size(24.dp).graphicsLayer { translationY = 1.5.dp.toPx() })
+        androidx.compose.material3.Icon(icon, desc, tint = tint, modifier = Modifier.size(24.dp))
+    }
 }

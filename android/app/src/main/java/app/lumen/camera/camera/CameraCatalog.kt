@@ -159,7 +159,9 @@ class CameraCaps(
         val out = mutableListOf<VideoMode>()
         val m = map ?: return@lazy out
         val sizes = try { m.getOutputSizes(SurfaceTexture::class.java)?.toList() ?: emptyList() } catch (_: Exception) { emptyList() }
-        val candidates = listOf(24, 25, 30, 48, 50, 60, 120, 240)
+        // cinema rates plus every fixed rate the HAL advertises (e.g. 90, 100, 120 on some sensors)
+        val candidates = (listOf(24, 25, 30, 48, 50, 60, 90, 100, 120, 240) +
+            fpsRanges.filter { it.lower == it.upper }.map { it.upper }).distinct().sorted()
         for (s in sizes) {
             val ratio = s.width.toFloat() / s.height
             val is169 = kotlin.math.abs(ratio - 16f / 9f) < 0.02f

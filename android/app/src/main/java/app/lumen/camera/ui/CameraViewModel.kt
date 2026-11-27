@@ -33,7 +33,12 @@ import app.lumen.camera.storage.MediaSaver
 import app.lumen.camera.util.DeviceOrientation
 import app.lumen.camera.util.FrameAnalysis
 import app.lumen.camera.util.ThermalMonitor
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,6 +64,24 @@ enum class ProParam(val label: String) { ISO("ISO"), SHUTTER("SPEED"), EV("EV"),
 
 data class ZoomStop(val label: String, val cameraId: String, val ratio: Float, val factor: Float)
 
+/**
+ * Photo framing. [stream] is the sensor output ratio (long/short) that is captured; 1:1 and
+ * Full are centre crops of it, like the stock camera. [stored] is the value kept in settings.
+ */
+enum class Aspect(val label: String, val stream: Float, val stored: Float) {
+    R3_4("3:4", 4f / 3f, 4f / 3f),
+    R9_16("9:16", 16f / 9f, 16f / 9f),
+    R1_1("1:1", 4f / 3f, 1f),
+    FULL("Full", 16f / 9f, 0f);
+
+    companion object {
+        fun of(stored: Float): Aspect = entries.firstOrNull { abs(it.stored - stored) < 0.02f } ?: R3_4
+    }
+}
+
+/** Live recording read-outs, kept apart from [UiState] so they don't redraw the whole screen. */
+data class RecordInfo(val seconds: Int = 0, val timecode: String? = null, val audioDb: FloatArray? = null)
+
 data class UiState(
     val ready: Boolean = false,
     val cameras: List<CameraCaps> = emptyList(),
@@ -72,9 +95,6 @@ data class UiState(
     val zoomStops: List<ZoomStop> = emptyList(),
     val zoomFactor: Float = 1f,
     val recording: Boolean = false,
-    val recordSeconds: Int = 0,
-    val audioDb: FloatArray? = null,
-    val timecode: String? = null,
     val busy: Boolean = false,
     val busyText: String = "",
     val progress: Float = 0f,
@@ -88,8 +108,10 @@ data class UiState(
     val presets: List<ProPreset> = emptyList(),
     val videoModes: List<VideoMode> = emptyList(),
     val selectedVideo: VideoMode? = null,
-    val analysis: FrameAnalysis? = null,
     val thermalWarning: Boolean = false,
+    /** Increments on every shutter press (drives the capture blink). */
+    val shutterTick: Int = 0,
+    val showAspectPicker: Boolean = false,
 )
 
 enum class Sheet { NONE, SETTINGS, HARDWARE, MORE, PRESETS }
@@ -103,6 +125,40 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
     private val thermal = ThermalMonitor(ctx)
     private val pipeline = PhotoPipeline(ctx, engine, ai) { _ui.value.cameras }
     private val opLock = Mutex()
+    /** Background work (saving, merging) that must not hold up the next shot. */
+    private val bg = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var lastHeavy: Deferred<PhotoPipeline.Output>? = null
+    private val _processing = MutableStateFlow(0)
+    /** Number of photos still being saved / merged (spinner on the gallery button). */
+    val processing: StateFlow<Int> = _processing
+    private val _record = MutableStateFlow(RecordInfo())
+    val record: StateFlow<RecordInfo> = _record
+    private val _analysis = MutableStateFlow<FrameAnalysis?>(null)
+    val analysis: StateFlow<FrameAnalysis?> = _analysis
+
+    /** Screen long/short ratio, used for the Full framing (e.g. 19.5:9 = 2.17). */
+    val screenRatio: Float = run {
+        val dm = app.resources.displayMetrics
+        val wm = app.getSystemService(android.view.WindowManager::class.java)
+        val b = if (android.os.Build.VERSION.SDK_INT >= 30) wm?.maximumWindowMetrics?.bounds else null
+        val w = b?.width() ?: dm.widthPixels
+        val h = b?.height() ?: dm.heightPixels
+        (maxOf(w, h).toFloat() / minOf(w, h)).coerceIn(1.6f, 2.6f)
+    }
+
+    fun aspect(): Aspect = Aspect.of(_settings.value.aspect)
+    /** Centre-crop ratio for the saved photo (null = keep the stream as is). */
+    private fun cropFor(a: Aspect): Float? = when (a) {
+        Aspect.R1_1 -> 1f
+        Aspect.FULL -> screenRatio
+        else -> null
+    }
+    /** Viewfinder height / width in portrait. */
+    fun displayRatio(a: Aspect): Float = when (a) {
+        Aspect.R1_1 -> 1f
+        Aspect.FULL -> screenRatio
+        else -> a.stream
+    }
 
     private val _ui = MutableStateFlow(UiState())
     val ui: StateFlow<UiState> = _ui
@@ -178,6 +234,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() {
+        bg.cancel()
         engine.release()
         ai.close()
         thermal.stop()
@@ -267,7 +324,18 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
 
     fun toggleNight() {
         _ui.update { it.copy(night = !it.night, nightSuggested = false) }
+        // phones without RAW need an extra YUV stream for the night merge
+        if (_ui.value.current?.supportsRaw == false) reconfigure()
     }
+
+    fun setAspect(a: Aspect) {
+        val old = aspect()
+        _ui.update { it.copy(showAspectPicker = false) }
+        if (old == a) return
+        updateSettings { it.copy(aspect = a.stored) }
+    }
+
+    fun toggleAspectPicker() = _ui.update { it.copy(showAspectPicker = !it.showAspectPicker) }
 
     fun setExtension(ext: Int?) {
         _ui.update { it.copy(extension = ext, sheet = Sheet.NONE, mode = Mode.PHOTO) }
@@ -330,8 +398,8 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
         store.save(new)
         engine.antibanding = new.antibanding
         val streamsChanged = old.maxResolution != new.maxResolution || old.saveRaw != new.saveRaw ||
-            old.aspect != new.aspect || old.photoEngine != new.photoEngine || old.videoModeKey != new.videoModeKey ||
-            old.tenBitHlg != new.tenBitHlg
+            Aspect.of(old.aspect).stream != Aspect.of(new.aspect).stream || old.photoEngine != new.photoEngine ||
+            old.videoModeKey != new.videoModeKey || old.tenBitHlg != new.tenBitHlg
         if (old.videoModeKey != new.videoModeKey) {
             _ui.value.current?.let { c -> _ui.update { it.copy(selectedVideo = pickVideoMode(c, new.videoModeKey)) } }
         }
@@ -342,8 +410,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
         val s = _settings.value
         if (!s.histogram && !s.focusPeaking && !s.zebras && !s.falseColor) return
         viewModelScope.launch(Dispatchers.Default) {
-            val a = FrameAnalysis.analyze(bmp, s.focusPeaking, s.zebras, s.falseColor)
-            _ui.update { it.copy(analysis = a) }
+            _analysis.value = FrameAnalysis.analyze(bmp, s.focusPeaking, s.zebras, s.falseColor)
         }
     }
 
@@ -395,7 +462,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
                             _ui.update { it.copy(previewSize = pv) }
                         }
                         else -> {
-                            val aspect = st.aspect
+                            val aspect = Aspect.of(st.aspect).stream
                             val maxRes = st.maxResolution && c.ultraHighRes
                             val wantRaw = c.supportsRaw && (st.photoEngine == PhotoEngine.LUMEN || st.saveRaw || s.mode == Mode.ASTRO || s.mode == Mode.PRO)
                             val rawFmt = PhotoPipeline.rawFormatFor(c)
@@ -408,14 +475,16 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
                             val jpegList = if (maxRes && c.maxResJpegSizes.isNotEmpty()) c.maxResJpegSizes else c.jpegSizes
                             val jpeg = jpegList.firstOrNull { abs(it.width.toFloat() / it.height - aspect) < 0.02f } ?: jpegList.firstOrNull()
                             val pv = choosePreview(c, aspect)
-                            // No RAW (e.g. Galaxy A): offer a processed YUV stream so Lumen can still merge bursts.
-                            val yuvCands = if (rawSize == null && st.photoEngine == PhotoEngine.LUMEN) {
+                            // No RAW (e.g. Galaxy A): Night merges the ISP's YUV frames, so add that
+                            // stream only while Night is on (keeps the normal photo session light).
+                            val yuvCands = if (rawSize == null && s.night && s.mode == Mode.PHOTO) {
                                 val same = c.yuvSizes.filter { abs(it.width.toFloat() / it.height - aspect) < 0.02f }
-                                (same.take(1) + same.filter { it.width * it.height <= 12_600_000 }.take(1) +
-                                    same.filter { it.width * it.height <= 8_000_000 }.take(1)).distinct()
+                                (same.filter { it.width * it.height <= 12_600_000 }.take(1) +
+                                    same.filter { it.width * it.height <= 8_000_000 }.take(1) + same.take(1)).distinct()
                             } else emptyList()
                             engine.startPhotoSession(tex, pv, if (maxRes && rawSize != null) null else jpeg, rawSize, rawFmt, maxRes, yuvCands)
                             _ui.update { it.copy(previewSize = pv) }
+                            if (yuvCands.isNotEmpty() && engine.yuvReader == null) toast("Night merge is not available on this camera")
                         }
                     }
                     setControls(_ui.value.controls)
@@ -448,49 +517,75 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private suspend fun takePhoto() = opLock.withLock {
-        val s = _ui.value
-        val st = _settings.value
-        val caps = engine.caps ?: return@withLock
-        val rot = orientation.captureRotation(caps)
-        _ui.update { it.copy(busy = true, busyText = "Capturing", progress = 0f) }
-        try {
-            val out = when {
-                s.extension != null -> pipeline.extension(rot, st.jpegQuality, app.lumen.camera.camera.CameraCaps.extensionName(s.extension))
-                s.mode == Mode.ASTRO -> {
-                    astroCancel = false
-                    pipeline.astro(st, rot, st.astroDarkFrames, { p ->
-                        // stacked preview arrives in sensor orientation; rotate for the portrait viewfinder
-                        val pv = p.preview?.let { b ->
-                            val m = android.graphics.Matrix().apply { postRotate(caps.sensorOrientation.toFloat()) }
-                            Bitmap.createBitmap(b, 0, 0, b.width, b.height, m, true).also { if (it != b) b.recycle() }
-                        }
-                        _ui.update { it.copy(busyText = p.text, progress = p.frame.toFloat() / p.total, astroPreview = pv ?: it.astroPreview) }
-                    }, { astroCancel })
-                }
-                s.mode == Mode.PRO && st.saveRaw && engine.rawReader != null ->
-                    pipeline.proRaw(st, rot, s.controls.wbKelvin, s.controls.wbTint)
-                (st.photoEngine == PhotoEngine.LUMEN || s.night || s.mode == Mode.PRO) && engine.rawReader != null -> {
-                    val plan = pipeline.planBurst(caps, s.night, st, s.controls.iso.takeIf { s.mode == Mode.PRO }, s.controls.shutterNs.takeIf { s.mode == Mode.PRO })
-                    pipeline.lumenBurst(plan, s.night, st, rot, s.controls.zoomRatio, s.controls.wbKelvin, s.controls.wbTint) { text, p ->
-                        _ui.update { it.copy(busyText = text, progress = p) }
-                    }
-                }
-                // Phones without RAW: merge a YUV burst in low light / Night / Pro, ISP JPEG in good light.
-                engine.yuvReader != null && (s.night || s.mode == Mode.PRO ||
-                    (st.photoEngine == PhotoEngine.LUMEN && engine.live.value.ev100 < 8f)) ->
-                    pipeline.yuvBurst(s.night, st, rot,
-                        s.controls.iso.takeIf { s.mode == Mode.PRO }, s.controls.shutterNs.takeIf { s.mode == Mode.PRO }) { text, p ->
-                        _ui.update { it.copy(busyText = text, progress = p) }
-                    }
-                else -> pipeline.ispJpeg(rot, st.jpegQuality)
+    private suspend fun takePhoto() {
+        if (_processing.value >= 8) return   // storage can't keep up: drop the press
+        _ui.update { it.copy(shutterTick = it.shutterTick + 1) }
+        val pending: Deferred<PhotoPipeline.Output>? = opLock.withLock {
+            val s = _ui.value
+            val st = _settings.value
+            val caps = engine.caps ?: return@withLock null
+            val rot = orientation.captureRotation(caps)
+            val crop = cropFor(aspect())
+            val progress: (String, Float) -> Unit = { text, p ->
+                _ui.update { if (it.busy) it.copy(busyText = text, progress = p) else it }
             }
-            _ui.update { it.copy(thumbnail = out.thumbnail ?: it.thumbnail, lastUri = out.uri ?: it.lastUri, astroPreview = null) }
-            toast(out.message)
-        } catch (e: Exception) {
-            toast("Capture failed: ${e.message}")
-        } finally {
-            _ui.update { it.copy(busy = false, busyText = "", progress = 0f) }
+            val rawBurst = (st.photoEngine == PhotoEngine.LUMEN || s.night || s.mode == Mode.PRO) && engine.rawReader != null &&
+                !(s.mode == Mode.PRO && st.saveRaw)
+            val yuvNight = s.night && engine.yuvReader != null
+            val heavy = rawBurst || yuvNight
+            try {
+                if (heavy) {
+                    lastHeavy?.join()   // one merge at a time keeps memory in check
+                    _ui.update { it.copy(busy = true, busyText = "Hold still", progress = 0f) }
+                }
+                when {
+                    s.extension != null -> {
+                        _ui.update { it.copy(busy = true, busyText = "Processing", progress = 0f) }
+                        CompletableDeferred(pipeline.extension(rot, st.jpegQuality, CameraCaps.extensionName(s.extension)))
+                    }
+                    s.mode == Mode.ASTRO -> {
+                        astroCancel = false
+                        _ui.update { it.copy(busy = true, busyText = "Starting", progress = 0f) }
+                        CompletableDeferred(pipeline.astro(st, rot, st.astroDarkFrames, { p ->
+                            // stacked preview arrives in sensor orientation; rotate for the portrait viewfinder
+                            val pv = p.preview?.let { b ->
+                                val m = android.graphics.Matrix().apply { postRotate(caps.sensorOrientation.toFloat()) }
+                                Bitmap.createBitmap(b, 0, 0, b.width, b.height, m, true).also { if (it != b) b.recycle() }
+                            }
+                            _ui.update { it.copy(busyText = p.text, progress = p.frame.toFloat() / p.total, astroPreview = pv ?: it.astroPreview) }
+                        }, { astroCancel }))
+                    }
+                    s.mode == Mode.PRO && st.saveRaw && engine.rawReader != null -> {
+                        _ui.update { it.copy(busy = true, busyText = "Saving RAW", progress = 0f) }
+                        CompletableDeferred(pipeline.proRaw(st, rot, s.controls.wbKelvin, s.controls.wbTint))
+                    }
+                    rawBurst -> {
+                        val plan = pipeline.planBurst(caps, s.night, st, s.controls.iso.takeIf { s.mode == Mode.PRO }, s.controls.shutterNs.takeIf { s.mode == Mode.PRO })
+                        pipeline.lumenBurst(bg, plan, s.night, st, rot, s.controls.zoomRatio, s.controls.wbKelvin, s.controls.wbTint, crop, progress)
+                            .also { lastHeavy = it }
+                    }
+                    yuvNight -> pipeline.yuvNight(bg, st, rot, crop, progress).also { lastHeavy = it }
+                    // Everything else: the phone's own ISP, zero shutter lag, saved in the background.
+                    else -> pipeline.ispJpeg(bg, rot, st.jpegQuality, crop)
+                }
+            } catch (e: Exception) {
+                toast("Capture failed: ${e.message}")
+                null
+            } finally {
+                _ui.update { it.copy(busy = false, busyText = "", progress = 0f, astroPreview = null) }
+            }
+        } ?: return
+        _processing.update { it + 1 }
+        viewModelScope.launch {
+            try {
+                val out = pending.await()
+                _ui.update { it.copy(thumbnail = out.thumbnail ?: it.thumbnail, lastUri = out.uri ?: it.lastUri) }
+                if (out.message.isNotEmpty()) toast(out.message)
+            } catch (e: Exception) {
+                toast("Save failed: ${e.message}")
+            } finally {
+                _processing.update { it - 1 }
+            }
         }
     }
 
@@ -510,20 +605,26 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
                     toast("No encoder supports ${vm.label}")
                     return@withLock
                 }
-                val auto = autoBitrate(vm, enc.codec)
-                val bitrate = (if (st.bitrateMbps > 0) st.bitrateMbps * 1_000_000 else auto).coerceAtMost(enc.maxBitrate)
+                val auto = autoBitrate(vm, enc.codec).coerceAtMost(enc.maxBitrate)
+                // A chosen bitrate is tried as is: many encoders accept more than they advertise.
+                var bitrate = if (st.bitrateMbps > 0) st.bitrateMbps * 1_000_000 else auto
                 val audioOk = st.recordAudio && ctx.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
                     android.content.pm.PackageManager.PERMISSION_GRANTED
                 val (uri, pfd) = MediaSaver.createVideo(ctx, MediaSaver.timestampName("VID"))
                 try {
-                    val rec = VideoRecorder(
+                    fun make(br: Int) = VideoRecorder(
                         VideoRecorder.Config(
-                            vm.size.width, vm.size.height, vm.fps, bitrate, enc.codec, enc.name, hlg,
+                            vm.size.width, vm.size.height, vm.fps, br, enc.codec, enc.name, hlg,
                             st.logProfile && _ui.value.mode == Mode.PRO_VIDEO, st.cbr, audioOk,
                             audioGainDb = st.audioGainDb.toFloat(),
                         ),
                         pfd.fileDescriptor, orientation.captureRotation(caps), caps.timestampRealtime,
                     )
+                    val rec = try { make(bitrate) } catch (e: Exception) {
+                        if (bitrate <= enc.maxBitrate) throw e
+                        bitrate = enc.maxBitrate
+                        make(bitrate)
+                    }
                     val pv = if (vm.highSpeed) vm.size else _ui.value.previewSize
                     engine.startVideoSession(tex, pv, rec.inputSurface, vm, hlg)
                     // lock white balance for the take so colour doesn't drift mid-shot
@@ -532,7 +633,8 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
                     recorder = rec
                     recordFd = pfd
                     recordUri = uri
-                    _ui.update { it.copy(recording = true, recordSeconds = 0) }
+                    _ui.update { it.copy(recording = true) }
+                    _record.value = RecordInfo()
                     toast("${enc.codec.label} · ${bitrate / 1_000_000} Mb/s" + if (hlg) " · 10-bit HLG" else "")
                     val startMs = android.os.SystemClock.elapsedRealtime()
                     val fps = vm.fps
@@ -548,12 +650,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
                                 val s = el / 1000
                                 timecode((s / 3600).toInt(), ((s / 60) % 60).toInt(), (s % 60).toInt(), ((el % 1000) * fps / 1000).toInt())
                             }
-                            _ui.update {
-                                it.copy(
-                                    recordSeconds = (el / 1000).toInt(), timecode = tc,
-                                    audioDb = if (st.audioMeters && audioOk) rec.levelsDb else null,
-                                )
-                            }
+                            _record.value = RecordInfo((el / 1000).toInt(), tc, if (st.audioMeters && audioOk) rec.levelsDb else null)
                         }
                     }
                 } catch (e: Exception) {
@@ -580,7 +677,8 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
         recordJob?.cancel()
         val rec = recorder ?: return
         recorder = null
-        _ui.update { it.copy(recording = false, busy = true, busyText = "Saving video", audioDb = null, timecode = null) }
+        _ui.update { it.copy(recording = false, busy = true, busyText = "Saving video") }
+        _record.value = RecordInfo()
         if (_ui.value.controls.awbLock) setControls(_ui.value.controls.copy(awbLock = false))
         viewModelScope.launch {
             opLock.withLock {
