@@ -150,6 +150,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the roadmap, how to run the core test
 
 ## Credits
 
+- Created and maintained by [jeshiomurmu](https://github.com/jeshiomurmu), built with Claude (Anthropic).
 - HDR+ burst pipeline: Hasinoff et al., *Burst photography for high dynamic range and low-light imaging on mobile cameras*, SIGGRAPH Asia 2016 (re-implemented).
 - Demosaic: Malvar, He & Cutler 2004. Exposure fusion: Mertens, Kautz & Van Reeth 2007. Guided filter: He, Sun & Tang.
 - Planckian locus: Kim et al. Star matching: triangle-invariant matching after Valdes et al. (the idea behind *astroalign*). Auto-stretch: PixInsight-style midtone transfer.
