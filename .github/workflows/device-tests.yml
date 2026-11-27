@@ -1,0 +1,118 @@
+# Runs the test suite and the apps on an Android emulator and an iOS Simulator,
+# then commits the results to docs/test-results (shown in the README).
+name: Device tests
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["docs/test-results/**", "README.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: device-tests
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Build core tests with the NDK (x86_64)
+        run: |
+          NDK="$ANDROID_HOME/ndk/27.3.13750724"
+          [ -d "$NDK" ] || NDK="$ANDROID_NDK_HOME"
+          CXX="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android29-clang++"
+          mkdir -p build-android
+          "$CXX" -std=c++17 -O3 -ffast-math -fno-finite-math-only -static-libstdc++ \
+            -Icore/include -Icore/src core/src/*.cpp core/tests/test_core.cpp -o build-android/lumen_tests
+      - name: Build APK
+        working-directory: android
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "cmake;3.22.1" > /dev/null
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/*.apk ../app.apk
+      - name: Run on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back emulated -camera-front emulated
+          script: bash .github/device-tests/android.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: results-android
+          path: results/android
+
+  ios:
+    name: iOS Simulator
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build core tests for the iOS Simulator (arm64)
+        run: |
+          mkdir -p build-ios
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          xcrun -sdk iphonesimulator clang++ -target arm64-apple-ios17.0-simulator -isysroot "$SDK" \
+            -std=c++17 -O3 -ffast-math -fno-finite-math-only \
+            -Icore/include -Icore/src core/src/*.cpp core/tests/test_core.cpp -o build-ios/lumen_tests
+      - name: Build the app for the Simulator
+        run: |
+          brew install xcodegen
+          cd ios && xcodegen generate
+          set -o pipefail
+          xcodebuild -project LumenCamera.xcodeproj -scheme LumenCamera -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build-sim \
+            CODE_SIGNING_ALLOWED=NO build | tail -5
+      - name: Run in the Simulator
+        run: bash .github/device-tests/ios.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: results-ios
+          path: results/ios
+
+  publish:
+    name: Commit results
+    needs: [android, ios]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: incoming
+          pattern: results-*
+      - name: Commit to docs/test-results
+        run: |
+          mkdir -p docs/test-results
+          for p in android ios; do
+            if [ -d "incoming/results-$p" ]; then rm -rf "docs/test-results/$p"; cp -R "incoming/results-$p" "docs/test-results/$p"; fi
+          done
+          date -u +"%Y-%m-%d %H:%M UTC" > docs/test-results/when.txt
+          echo "${GITHUB_SHA::7}" > docs/test-results/commit.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/test-results
+          git diff --cached --quiet || git commit -m "Device test results for ${GITHUB_SHA::7} [skip ci]"
+          git push
