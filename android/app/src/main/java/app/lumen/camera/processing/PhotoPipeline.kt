@@ -257,7 +257,7 @@ class PhotoPipeline(
     suspend fun proRaw(settings: AppSettings, orientationDeg: Int, manualKelvin: Int?, manualTint: Int): Output =
         withContext(Dispatchers.Default) {
             val shot = engine.captureRaw(orientationDeg)
-            val caps = effectiveCaps(engine.caps!!, shot.result)
+            val caps = effectiveCaps(engine.caps ?: error("camera closed"), shot.result)
             val spec = ColorMath.rawSpec(caps, shot.image, shot.result, engine.isMaxResMode)
             val buf = copyPlane(shot, ArrayDeque())
             shot.image.close()

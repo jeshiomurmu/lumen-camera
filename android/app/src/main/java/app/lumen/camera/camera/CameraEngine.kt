@@ -126,10 +126,13 @@ class CameraEngine(context: Context) {
         kind = SessionKind.NONE
     }
 
+    val isOpen: Boolean get() = device != null
+
     fun closeCamera() {
         closeSession()
         try { device?.close() } catch (_: Exception) {}
         device = null
+        caps = null   // forces a reopen on resume (Activity recreated / app returned to)
     }
 
     fun release() {

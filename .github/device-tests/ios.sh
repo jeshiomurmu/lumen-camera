@@ -16,7 +16,7 @@ xcrun simctl boot "$UDID"
 xcrun simctl bootstatus "$UDID" -b > /dev/null
 {
   echo "device: $NAME Simulator · $RUNTIME"
-  echo "host: $(sysctl -n machdep.cpu.brand_string) · cpus: $(sysctl -n hw.ncpu) · $(xcodebuild -version | head -1)"
+  echo "host: $(sysctl -n machdep.cpu.brand_string) · cpus: $(sysctl -n hw.ncpu) · $(xcodebuild -version 2>/dev/null | sed -n 1p)"
 } > "$R/device.txt"
 cat "$R/device.txt"
 

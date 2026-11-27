@@ -377,7 +377,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
                 val c = s.current ?: return@withLock
                 val st = _settings.value
                 try {
-                    if (engine.caps?.id != c.id) engine.open(c)
+                    if (engine.caps?.id != c.id || !engine.isOpen) engine.open(c)
                     val ext = s.extension
                     when {
                         ext != null && c.extensions.contains(ext) -> {

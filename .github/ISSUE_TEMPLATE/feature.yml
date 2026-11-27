@@ -1,0 +1,8 @@
+name: Feature idea
+description: Suggest a camera feature or improvement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes: { label: Idea, description: "What should Lumen do, and which phones/APIs support it?" }
+    validations: { required: true }

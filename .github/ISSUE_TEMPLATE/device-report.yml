@@ -1,0 +1,29 @@
+name: Device report
+description: Tell us how Lumen works on your phone
+labels: ["device report"]
+body:
+  - type: input
+    id: phone
+    attributes: { label: Phone model and OS version, placeholder: "Galaxy S25 Ultra, Android 16 / iPhone 16 Pro, iOS 26.1" }
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes: { label: Lumen version, placeholder: "1.0.6" }
+  - type: checkboxes
+    id: works
+    attributes:
+      label: What works?
+      options:
+        - label: Photo (Lumen burst)
+        - label: Night
+        - label: Pro / manual controls
+        - label: RAW (DNG) saving
+        - label: Astro stacking
+        - label: Video recording
+        - label: AI denoise / AI zoom
+  - type: textarea
+    id: hardware
+    attributes: { label: Hardware report, description: "Settings → Hardware report (copy the text or attach screenshots)" }
+  - type: textarea
+    id: problems
+    attributes: { label: Problems, description: "What went wrong, steps to reproduce, crash text if any" }
