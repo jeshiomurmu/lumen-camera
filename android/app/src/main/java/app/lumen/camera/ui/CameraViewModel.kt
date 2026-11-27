@@ -520,7 +520,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun takePhoto() {
         if (_processing.value >= 8) return   // storage can't keep up: drop the press
         _ui.update { it.copy(shutterTick = it.shutterTick + 1) }
-        val pending: Deferred<PhotoPipeline.Output>? = opLock.withLock {
+        val pending: Deferred<PhotoPipeline.Output> = opLock.withLock<Deferred<PhotoPipeline.Output>?> {
             val s = _ui.value
             val st = _settings.value
             val caps = engine.caps ?: return@withLock null
