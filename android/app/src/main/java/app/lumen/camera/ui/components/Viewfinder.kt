@@ -25,7 +25,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as GSize
 import androidx.compose.ui.graphics.Color
@@ -326,6 +325,8 @@ fun InfoText(text: String, modifier: Modifier, color: Color = Color.White) {
     Text(text, style = overlayStyle(12.sp, FontWeight.SemiBold, color), modifier = modifier)
 }
 
+private val HALO = listOf(-1f to 0f, 1f to 0f, 0f to -1f, 0f to 1.5f, 1f to 1.5f, -1f to 1.5f)
+
 /** Shadowed icon: a soft dark copy under the white glyph, so it reads on bright skies. */
 @Composable
 fun ShadowIcon(
@@ -336,11 +337,11 @@ fun ShadowIcon(
     rotation: () -> Float = { 0f },
 ) {
     Box(modifier.graphicsLayer { rotationZ = rotation() }, contentAlignment = Alignment.Center) {
-        // blurred dark halo (Android 12+) plus a slightly larger dark copy, so the glyph reads on white sky
-        androidx.compose.material3.Icon(icon, null, tint = Color.Black.copy(alpha = 0.55f),
-            modifier = Modifier.size(27.dp).blur(3.dp, androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded))
-        androidx.compose.material3.Icon(icon, null, tint = Color.Black.copy(alpha = 0.35f),
-            modifier = Modifier.size(25.dp).graphicsLayer { translationY = 0.5.dp.toPx() })
+        // dark outline from shifted copies (no blur pass: cheap on any GPU), reads on white sky
+        for ((dx, dy) in HALO) {
+            androidx.compose.material3.Icon(icon, null, tint = Color.Black.copy(alpha = 0.28f),
+                modifier = Modifier.size(24.dp).graphicsLayer { translationX = dx.dp.toPx(); translationY = dy.dp.toPx() })
+        }
         androidx.compose.material3.Icon(icon, desc, tint = tint, modifier = Modifier.size(24.dp))
     }
 }
