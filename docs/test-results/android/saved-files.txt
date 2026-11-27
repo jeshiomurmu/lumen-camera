@@ -1,2 +1,2 @@
-total 116
--rwxrwx--- 1 u0_a179 media_rw 112038 2026-11-27 13:11 LUMEN_20261127_131133_413.jpg
+total 108
+-rwxrwx--- 1 u0_a179 media_rw 104537 2026-11-27 13:45 LUMEN_20261127_134529_772.jpg
