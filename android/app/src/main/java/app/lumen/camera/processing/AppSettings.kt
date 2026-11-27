@@ -9,8 +9,8 @@ import org.json.JSONObject
 
 /** Which pipeline makes the photo. */
 enum class PhotoEngine(val label: String) {
-    LUMEN("Lumen burst (open-source HDR+)"),
-    DEVICE("Device ISP (fastest)"),
+    LUMEN("Lumen RAW merge"),
+    DEVICE("Phone processing (fastest)"),
 }
 
 /** User settings, persisted in SharedPreferences as JSON. */

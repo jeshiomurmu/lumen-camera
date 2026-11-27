@@ -72,6 +72,20 @@ wait_new() {
   echo timeout
 }
 shutter() { tapd "Shutter" || adb shell input tap $((W / 2)) $((H - H * 9 / 100)); }
+# in-app timing lines ("LumenPerf shot kind=isp shutter_free=..ms saved=..ms")
+perf_count() { adb logcat -d -s LumenPerf:I | grep -c "shot kind" || true; }
+perf_wait() {   # waits for shot line number > $1, prints it
+  for i in $(seq 1 360); do
+    L=$(adb logcat -d -s LumenPerf:I | grep "shot kind" | sed -n "$(( $1 + 1 ))p")
+    [ -n "$L" ] && { echo "$L" | sed 's/.*LumenPerf: //'; return; }
+    sleep 0.25
+  done
+  echo "no result (timeout)"
+}
+set_engine() {   # $1 = option label in Settings > Photo > Processing
+  tapd "Settings" && sleep 2 && tapd "Settings Photo" && sleep 1.5 && tapd "Setting Processing" && sleep 1 && tapd "Option $1"
+  sleep 1; adb shell input keyevent KEYCODE_BACK; sleep 1; adb shell input keyevent KEYCODE_BACK; sleep 3; dismiss
+}
 
 # 2) install + launch the real APK
 adb install -r -g app.apk 2>&1 | tail -1 | tee "$R/install.txt"
@@ -90,16 +104,19 @@ adb shell am start -n app.lumen.camera/.MainActivity > /dev/null; sleep 6; dismi
 shot after-resume
 log "resume: $( [ -n "$(adb shell pidof app.lumen.camera | tr -d '\r')" ] && echo ok || echo FAILED)"
 
-# 4) shutter latency (press -> file in the gallery) and rapid shots
+# 4) phone processing (the default on phones without RAW, e.g. Galaxy A16): latency + rapid shots
 adb shell dumpsys gfxinfo app.lumen.camera reset > /dev/null
-N0=$(count jpg)
-shutter
-log "photo: tap -> saved $(wait_new jpg "$N0") ms (includes adb polling, 250 ms steps)"
-sleep 1
-N0=$(count jpg); t0=$(now_ms)
+set_engine "Phone processing (fastest)"
+for k in 1 2 3; do
+  P0=$(perf_count); shutter
+  log "photo $k: $(perf_wait "$P0")"
+  sleep 1.5
+done
+N0=$(count jpg); P0=$(perf_count); t0=$(now_ms)
 for i in 1 2 3 4 5; do adb shell input tap $((W / 2)) $((H - H * 9 / 100)); sleep 0.3; done
 for i in $(seq 1 120); do [ "$(count jpg)" -ge $((N0 + 5)) ] && break; sleep 0.25; done
-log "rapid shots: $(( $(count jpg) - N0 ))/5 saved in $(( $(now_ms) - t0 )) ms (taps 300 ms apart)"
+log "rapid shots: $(( $(count jpg) - N0 ))/5 saved within $(( $(now_ms) - t0 )) ms of the first tap (taps 300 ms apart)"
+adb logcat -d -s LumenPerf:I | grep "shot kind" | tail -n +$((P0 + 1)) | sed 's/.*LumenPerf: /  /' >> "$F"
 shot after-capture
 F1=$(newest jpg); [ -n "$F1" ] && adb pull "/sdcard/DCIM/Lumen/$F1" "$R/photo.jpg" > /dev/null
 
@@ -108,15 +125,16 @@ for A in "3:4" "9:16" "1:1" "Full"; do
   tapd "Aspect ratio" && sleep 1 && tapd "Aspect $A"
   sleep 3
   shot "aspect-${A/:/x}"
-  N0=$(count jpg)
+  N0=$(count jpg); P0=$(perf_count)
   shutter
-  r=$(wait_new jpg "$N0")
+  r=$(perf_wait "$P0")
+  sleep 0.5
   f=$(newest jpg)
-  if [ -n "$f" ] && [ "$r" != timeout ]; then
+  if [ -n "$f" ] && [ "$(count jpg)" -gt "$N0" ]; then
     adb pull "/sdcard/DCIM/Lumen/$f" "/tmp/a.jpg" > /dev/null
     read iw ih io < <(python3 $T/jpeginfo.py /tmp/a.jpg)
     ratio=$(python3 -c "print(f'{max($iw,$ih)/min($iw,$ih):.3f}')")
-    log "aspect $A: saved ${iw}x${ih} (exif orientation $io) long/short $ratio in $r ms"
+    log "aspect $A: saved ${iw}x${ih} (exif orientation $io), long/short $ratio · $r"
   else
     log "aspect $A: NO FILE"
   fi
@@ -157,6 +175,7 @@ if [ -n "$v" ] && [ "$r" != timeout ]; then
     log "video: $P"
   fi
   log "video file: $(stat -c %s "$R/video.mp4") bytes"
+  log "video request: $(adb logcat -d -s LumenPerf:I | grep ' record ' | tail -1 | sed 's/.*LumenPerf: //')"
 else
   log "video: NO FILE"
 fi
@@ -164,13 +183,17 @@ rm -f "$R/video.mp4"
 
 # 8) Night (multi-frame merge) and Pro
 tapd "Mode PHOTO"; sleep 3
-tapd "Night"; sleep 3
-N0=$(count NIGHT)
+tapd "Night"; sleep 4
+N0=$(count NIGHT); P0=$(perf_count)
 shutter
-r=$(wait_new NIGHT "$N0")
-log "night: tap -> merged photo saved $r ms"
-n=$(newest NIGHT); [ -n "$n" ] && adb pull "/sdcard/DCIM/Lumen/$n" "$R/night.jpg" > /dev/null
-tapd "Night"; sleep 2
+log "night (multi-frame merge of the phone's frames): $(perf_wait "$P0")"
+sleep 1
+n=$(newest NIGHT); [ -n "$n" ] && adb pull "/sdcard/DCIM/Lumen/$n" "$R/night.jpg" > /dev/null && log "night file: $n"
+tapd "Night"; sleep 3
+# Lumen RAW merge (phones that expose RAW; the emulator does)
+set_engine "Lumen RAW merge"
+P0=$(perf_count); shutter
+log "lumen raw merge: $(perf_wait "$P0")"
 tapd "Mode PRO"; sleep 3; tapd "Pro ISO"; sleep 1; shot pro
 tapd "Mode PHOTO"; sleep 2
 
@@ -179,10 +202,13 @@ adb shell dumpsys gfxinfo app.lumen.camera | tr -d '\r' > /tmp/gfx.txt
 log "frames: $(grep -m1 'Total frames rendered' /tmp/gfx.txt | awk -F': ' '{print $2}') rendered, janky $(grep -m1 'Janky frames:' /tmp/gfx.txt | awk -F': ' '{print $2}')"
 log "frame time: 50th $(grep -m1 '50th percentile' /tmp/gfx.txt | awk -F': ' '{print $2}'), 90th $(grep -m1 '90th percentile' /tmp/gfx.txt | awk -F': ' '{print $2}'), 99th $(grep -m1 '99th percentile' /tmp/gfx.txt | awk -F': ' '{print $2}')"
 
+log "ui thread blocked by camera calls: $(adb logcat -d | grep -c 'contention with owner main.*CameraDeviceImpl' || true) times"
+log "session rebuilds: $(adb logcat -d -s LumenPerf:I | grep -c ' session ' || true), slowest $(adb logcat -d -s LumenPerf:I | grep ' session ' | grep -oE '[0-9]+ms' | sort -n | tail -1)"
 PID2=$(adb shell pidof app.lumen.camera | tr -d '\r')
 if [ -n "$PID2" ]; then echo "running at the end: yes"; else echo "running at the end: NO"; fi | tee -a "$R/launch.txt"
 adb shell ls -la /sdcard/DCIM/Lumen 2>&1 | tr -d '\r' | tee "$R/saved-files.txt"
-adb logcat -d | grep -iE "lumen|AndroidRuntime|FATAL" | tail -200 > "$R/logcat.txt"
+adb logcat -d -s LumenPerf:I | sed 's/.*LumenPerf: //' > "$R/perf.txt"
+adb logcat -d | grep -iE "lumen|AndroidRuntime|FATAL" | grep -v AccessibilityNodeInfoDumper | tail -200 > "$R/logcat.txt"
 grep -c "FATAL EXCEPTION" "$R/logcat.txt" > "$R/crashes.txt" || true
 log "crashes: $(cat "$R/crashes.txt")"
 exit 0

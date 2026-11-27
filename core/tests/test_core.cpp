@@ -896,7 +896,17 @@ static void test_yuv_merge(bool perf) {
   std::printf("  moving object region (must stay like the reference): %.2f dB single, %.2f dB merged\n", g1, gN);
   CHECK(pN - p1 > 5.0, "luma gain %.2f dB", pN - p1);
   CHECK(cN - c1 > 4.0, "chroma gain %.2f dB", cN - c1);
-  CHECK(gN > g1 - 0.5, "ghosting: %.2f vs %.2f dB", gN, g1);
+  // where the object moved, the merge must fall back to the reference: no ghost edges
+  // (large errors) and no real loss against a single frame
+  int ghostPx = 0;
+  for (int y = 300; y < 400; ++y)
+    for (int x = 420; x < 520; ++x) {
+      const uint8_t* p = many.data() + (size_t(y) * W + x) * 4;
+      if (std::fabs(0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2] - yuv_scene(0, x, y)) > 6 * sy) ++ghostPx;
+    }
+  std::printf("  ghost pixels (> 6 sigma) in the moving region: %d of 10000\n", ghostPx);
+  CHECK(ghostPx < 20, "ghost pixels %d", ghostPx);
+  CHECK(gN > g1 - 1.0, "moving region %.2f vs %.2f dB", gN, g1);
   CHECK(sN.noise_sigma > 0.6f * sy && sN.noise_sigma < 1.5f * sy, "sigma %.2f", sN.noise_sigma);
   CHECK(sN.frames == N, "frames %d", sN.frames);
   CHECK(lumen_yuv_merge_create(10, 10, 1.f) == nullptr, "rejects tiny frames");

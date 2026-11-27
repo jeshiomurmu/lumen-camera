@@ -38,6 +38,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -125,6 +126,12 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
     private val thermal = ThermalMonitor(ctx)
     private val pipeline = PhotoPipeline(ctx, engine, ai) { _ui.value.cameras }
     private val opLock = Mutex()
+    /**
+     * Every camera call (session rebuilds, repeating requests, captures) runs on this one
+     * thread, never on the UI thread: Camera2 blocks the caller while it reconfigures.
+     */
+    private val camExec = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "LumenControl") }
+    private val cam = camExec.asCoroutineDispatcher()
     /** Background work (saving, merging) that must not hold up the next shot. */
     private val bg = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var lastHeavy: Deferred<PhotoPipeline.Output>? = null
@@ -218,13 +225,13 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
 
     fun onSurface(tex: SurfaceTexture?) {
         texture = tex
-        if (tex != null) reconfigure() else viewModelScope.launch { opLock.withLock { engine.closeSession() } }
+        if (tex != null) reconfigure() else viewModelScope.launch(cam) { opLock.withLock { engine.closeSession() } }
     }
 
     fun onPause() {
         if (_ui.value.recording) stopRecording()
         astroCancel = true
-        viewModelScope.launch { opLock.withLock { engine.closeCamera() } }
+        viewModelScope.launch(cam) { opLock.withLock { engine.closeCamera() } }
         orientation.stop()
     }
 
@@ -236,6 +243,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
     override fun onCleared() {
         bg.cancel()
         engine.release()
+        camExec.shutdown()
         ai.close()
         thermal.stop()
         super.onCleared()
@@ -324,8 +332,8 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
 
     fun toggleNight() {
         _ui.update { it.copy(night = !it.night, nightSuggested = false) }
-        // phones without RAW need an extra YUV stream for the night merge
-        if (_ui.value.current?.supportsRaw == false) reconfigure()
+        // without a RAW stream, Night needs an extra YUV stream for the merge
+        if (engine.rawReader == null) reconfigure()
     }
 
     fun setAspect(a: Aspect) {
@@ -347,18 +355,21 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
     // ---- controls ---------------------------------------------------------------------------
     fun setControls(c: Controls) {
         _ui.update { it.copy(controls = c) }
-        engine.applyControls(c.copy(
+        val req = c.copy(
             noiseReductionMode = _settings.value.ispNoiseReduction.takeIf { it >= 0 },
             edgeMode = _settings.value.ispSharpening.takeIf { it >= 0 },
             ois = c.ois,
             logCurve = _ui.value.mode == Mode.PRO_VIDEO && _settings.value.logProfile,
             videoStabilization = _settings.value.stabilization,
-        ))
+        )
+        viewModelScope.launch(cam) { engine.applyControls(req) }
     }
 
     fun selectProParam(p: ProParam?) = _ui.update { it.copy(proParam = if (it.proParam == p) null else p) }
 
-    fun tapFocus(nx: Float, ny: Float) = engine.focusAt(nx, ny)
+    fun tapFocus(nx: Float, ny: Float) {
+        viewModelScope.launch(cam) { engine.focusAt(nx, ny) }
+    }
 
     fun cycleFlash() {
         val c = _ui.value.controls
@@ -440,8 +451,9 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun reconfigure() {
-        viewModelScope.launch {
+        viewModelScope.launch(cam) {
             opLock.withLock {
+                val t0 = android.os.SystemClock.elapsedRealtime()
                 val tex = texture ?: return@withLock
                 val s = _ui.value
                 val c = s.current ?: return@withLock
@@ -488,6 +500,8 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
                         }
                     }
                     setControls(_ui.value.controls)
+                    perf("session mode=${s.mode} aspect=${aspect().label} night=${s.night} " +
+                        "yuv=${engine.yuvReader != null} raw=${engine.rawReader != null} ${android.os.SystemClock.elapsedRealtime() - t0}ms")
                 } catch (e: Exception) {
                     toast("Camera error: ${e.message}")
                 }
@@ -520,7 +534,9 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun takePhoto() {
         if (_processing.value >= 8) return   // storage can't keep up: drop the press
         _ui.update { it.copy(shutterTick = it.shutterTick + 1) }
-        val pending: Deferred<PhotoPipeline.Output> = opLock.withLock<Deferred<PhotoPipeline.Output>?> {
+        val tPress = android.os.SystemClock.elapsedRealtime()
+        var kind = "isp"
+        val pending: Deferred<PhotoPipeline.Output> = withContext(cam) { opLock.withLock<Deferred<PhotoPipeline.Output>?> {
             val s = _ui.value
             val st = _settings.value
             val caps = engine.caps ?: return@withLock null
@@ -529,10 +545,12 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
             val progress: (String, Float) -> Unit = { text, p ->
                 _ui.update { if (it.busy) it.copy(busyText = text, progress = p) else it }
             }
-            val rawBurst = (st.photoEngine == PhotoEngine.LUMEN || s.night || s.mode == Mode.PRO) && engine.rawReader != null &&
+            // "Device processing" keeps the phone's own look everywhere (Night merges ISP frames)
+            val rawBurst = st.photoEngine == PhotoEngine.LUMEN && engine.rawReader != null &&
                 !(s.mode == Mode.PRO && st.saveRaw)
             val yuvNight = s.night && engine.yuvReader != null
             val heavy = rawBurst || yuvNight
+            kind = when { rawBurst -> "raw-burst"; yuvNight -> "night-merge"; s.extension != null -> "extension"; s.mode == Mode.ASTRO -> "astro"; else -> "isp" }
             try {
                 if (heavy) {
                     lastHeavy?.join()   // one merge at a time keeps memory in check
@@ -574,11 +592,13 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
             } finally {
                 _ui.update { it.copy(busy = false, busyText = "", progress = 0f, astroPreview = null) }
             }
-        } ?: return
+        } } ?: return
+        val tFree = android.os.SystemClock.elapsedRealtime()
         _processing.update { it + 1 }
         viewModelScope.launch {
             try {
                 val out = pending.await()
+                perf("shot kind=$kind shutter_free=${tFree - tPress}ms saved=${android.os.SystemClock.elapsedRealtime() - tPress}ms aspect=${aspect().label}")
                 _ui.update { it.copy(thumbnail = out.thumbnail ?: it.thumbnail, lastUri = out.uri ?: it.lastUri) }
                 if (out.message.isNotEmpty()) toast(out.message)
             } catch (e: Exception) {
@@ -591,7 +611,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- video ----------------------------------------------------------------------------------
     private fun startRecording() {
-        viewModelScope.launch {
+        viewModelScope.launch(cam) {
             opLock.withLock {
                 val tex = texture ?: return@withLock
                 val caps = engine.caps ?: return@withLock
@@ -636,6 +656,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
                     _ui.update { it.copy(recording = true) }
                     _record.value = RecordInfo()
                     toast("${enc.codec.label} · ${bitrate / 1_000_000} Mb/s" + if (hlg) " · 10-bit HLG" else "")
+                    perf("record ${vm.label} codec=${enc.codec.label} encoder=${enc.name} bitrate=${bitrate / 1_000_000}Mb/s (encoder max ${enc.maxBitrate / 1_000_000})")
                     val startMs = android.os.SystemClock.elapsedRealtime()
                     val fps = vm.fps
                     recordJob = viewModelScope.launch {
@@ -662,6 +683,8 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private fun perf(msg: String) = android.util.Log.i("LumenPerf", msg)
+
     private fun timecode(h: Int, m: Int, s: Int, f: Int) = "%02d:%02d:%02d:%02d".format(h, m, s, f)
 
     private fun autoBitrate(vm: VideoMode, codec: VideoCodec): Int {
@@ -680,7 +703,7 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
         _ui.update { it.copy(recording = false, busy = true, busyText = "Saving video") }
         _record.value = RecordInfo()
         if (_ui.value.controls.awbLock) setControls(_ui.value.controls.copy(awbLock = false))
-        viewModelScope.launch {
+        viewModelScope.launch(cam) {
             opLock.withLock {
                 withContext(Dispatchers.IO) {
                     try { rec.stop() } catch (_: Exception) {}
